@@ -12,8 +12,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List tenant devices and authoritative audio outputs
-         * @description Requires JWT role or API key scope devices:read. Results are cursor paginated and may be filtered by status, group_id, and search.
+         * List devices and authoritative audio outputs
+         * @description Requires access token or API key scope devices:read. Results are cursor paginated and may be filtered by status, group_id, and search.
          */
         get: operations["listDevices"];
         put?: never;
@@ -52,7 +52,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List tenant output zones
+         * List output zones
          * @description Requires zones:read. Members are stable-sorted explicit device/output pairs.
          */
         get: operations["listOutputZones"];
@@ -161,7 +161,7 @@ export interface paths {
         };
         /**
          * Get device
-         * @description Returns one tenant-scoped device snapshot from the durable registry.
+         * @description Returns one customer-scoped device snapshot from the durable registry.
          */
         get: operations["getDevice"];
         put?: never;
@@ -181,7 +181,7 @@ export interface paths {
         };
         /**
          * List announcement delivery timelines
-         * @description Returns tenant-scoped proof-of-play delivery timelines, newest first.
+         * @description Returns customer-scoped proof-of-play delivery timelines, newest first.
          */
         get: operations["listDeliveryLogs"];
         put?: never;
@@ -201,13 +201,13 @@ export interface paths {
         };
         /**
          * List webhooks
-         * @description Lists tenant-owned webhook endpoints. Requires a PITCH JWT for an owner or admin; partner API keys cannot manage webhook configuration.
+         * @description Lists customer-owned webhook endpoints. Requires a PITCH access token for an owner or admin; partner API keys cannot manage webhook configuration.
          */
         get: operations["listWebhooks"];
         put?: never;
         /**
          * Create webhook
-         * @description Creates a tenant-owned webhook endpoint for an owner or admin and returns the signing secret once. Production URLs must use public HTTPS.
+         * @description Creates a customer-owned webhook endpoint for an owner or admin and returns the signing secret once. Production URLs must use public HTTPS.
          */
         post: operations["createWebhook"];
         delete?: never;
@@ -227,7 +227,7 @@ export interface paths {
         put?: never;
         /**
          * Publish a partner business event
-         * @description Publishes a meaningful business event for event-driven announcements. Partners should convert GPS or sensor streams into business events before calling this API; PITCH does not accept raw GPS traces here.
+         * @description Publishes an application-owned business event for matching event-driven announcements.
          */
         post: operations["publishEvent"];
         delete?: never;
@@ -245,7 +245,7 @@ export interface paths {
         };
         /**
          * List durable partner event occurrences
-         * @description Returns tenant-scoped event outcomes. Raw GPS traces are not accepted or returned.
+         * @description Returns the authenticated customer's event outcomes and per-output delivery results.
          */
         get: operations["listEventOccurrences"];
         put?: never;
@@ -306,14 +306,14 @@ export interface paths {
         post?: never;
         /**
          * Delete webhook
-         * @description Soft-deletes a tenant-owned webhook endpoint. Requires an owner or admin PITCH JWT.
+         * @description Soft-deletes a customer-owned webhook endpoint. Requires an owner or admin PITCH access token.
          */
         delete: operations["deleteWebhook"];
         options?: never;
         head?: never;
         /**
          * Update webhook
-         * @description Updates webhook URL or subscribed event types. Requires an owner or admin PITCH JWT.
+         * @description Updates webhook URL or subscribed event types. Requires an owner or admin PITCH access token.
          */
         patch: operations["updateWebhook"];
         trace?: never;
@@ -327,7 +327,7 @@ export interface paths {
         };
         /**
          * List webhook deliveries
-         * @description Lists delivery attempts for one webhook. Console users can read this with PITCH JWT auth; partner API keys need logs:read.
+         * @description Lists delivery attempts for one webhook. Console users can read this with PITCH access token auth; partner API keys need logs:read.
          */
         get: operations["listWebhookDeliveries"];
         put?: never;
@@ -473,7 +473,7 @@ export interface paths {
         put?: never;
         /**
          * Queue an instant announcement
-         * @description Queues an immediate announcement for one device target shape. The request accepts exactly one of device_id, device_ids, targets, or group_id; group_id is currently rejected by the backend with invalid_target. Missing output_id defaults to main. Non-main outputs require the device to report that output as enabled and ready. Independent playback describes cross-output overlap and is not required for single-output targeting.
+         * @description Queues an immediate announcement for one device target shape. The request accepts exactly one of device_id, device_ids, targets, or group_id; group_id is currently rejected by the PITCH service with invalid_target. Missing output_id defaults to main. Non-main outputs require the device to report that output as enabled and ready. Independent playback describes cross-output overlap and is not required for single-output targeting.
          */
         post: operations["createInstantAnnouncement"];
         delete?: never;
@@ -491,7 +491,7 @@ export interface paths {
         };
         /**
          * List announcements
-         * @description Returns tenant-scoped announcements with optional status filtering and cursor pagination.
+         * @description Returns customer-scoped announcements with optional status filtering and cursor pagination.
          */
         get: operations["listAnnouncements"];
         put?: never;
@@ -515,7 +515,7 @@ export interface paths {
         };
         /**
          * Get an announcement
-         * @description Returns one tenant-scoped announcement by identifier.
+         * @description Returns one customer-scoped announcement by identifier.
          */
         get: operations["getAnnouncement"];
         put?: never;
@@ -577,7 +577,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List tenant output controls */
+        /** List output controls */
         get: operations["listOutputControls"];
         put?: never;
         /**
@@ -616,17 +616,17 @@ export interface components {
             error: {
                 /** @example unauthorized */
                 code: string;
-                /** @example missing tenant context */
+                /** @example authentication context is missing */
                 message: string;
                 /**
                  * @description Optional machine-readable details for field-level or input-specific errors.
                  * @example {
                  *       "validation_issues": [
                  *         {
-                 *           "code": "unsupported_tts_symbol",
+                 *           "code": "unsupported_value",
                  *           "severity": "warning",
-                 *           "message": "Emoji, decorative symbols, and formatting marks are removed before speech because they cannot be read naturally.",
-                 *           "text": "🎉"
+                 *           "message": "The requested value is not supported.",
+                 *           "field": "content_config.type"
                  *         }
                  *       ]
                  *     }
@@ -714,7 +714,7 @@ export interface components {
             proof_at?: string;
             announcement_id?: string;
             message_id?: string;
-            /** @description Canonical existing decision_executions execution ID for the emergency playback proof. */
+            /** @description Durable decision identifier for emergency playback proof. */
             decision_id?: string;
             /** Format: date-time */
             created_at: string;
@@ -743,7 +743,7 @@ export interface components {
                 drain_queue?: boolean;
                 volume?: number;
                 mute?: boolean;
-                /** @description Tenant-owned immutable audio asset; arbitrary URLs are forbidden. */
+                /** @description Customer-owned immutable audio asset; arbitrary URLs are forbidden. */
                 asset_id?: string;
             };
             reason: string;
@@ -791,7 +791,6 @@ export interface components {
         };
         Announcement: {
             id: string;
-            tenant_id: string;
             name: string;
             type: string;
             /** @enum {string} */
@@ -813,7 +812,6 @@ export interface components {
                 /** Format: date-time */
                 at: string;
                 reason?: string;
-                changed_by?: string;
             }[];
             /** Format: date-time */
             starts_at?: string;
@@ -826,12 +824,11 @@ export interface components {
             /** Format: date-time */
             deleted_at?: string;
             version: number;
-            created_by: string;
             decision?: components["schemas"]["DecisionPreviewSummary"];
         };
         TriggerConfig: {
             /** @enum {string} */
-            type: "instant" | "scheduled" | "repetitive" | "event_driven" | "geo_triggered" | "sensor_triggered" | "chained" | "conditional" | "dynamic" | "subscription" | "interactive";
+            type: "instant" | "scheduled" | "repetitive" | "event_driven" | "chained" | "conditional" | "dynamic";
             /** @example 0 9 * * 1-5 */
             cron_expr?: string;
             /** @example Asia/Kolkata */
@@ -876,7 +873,7 @@ export interface components {
              */
             mode: "all" | "any";
             conditions?: components["schemas"]["RuleCondition"][];
-            /** @description Nested rule groups. Backend evaluation currently caps depth at 5. */
+            /** @description Nested rule groups. PITCH service evaluation currently caps depth at 5. */
             groups?: components["schemas"]["Rule"][];
         };
         RuleCondition: {
@@ -891,7 +888,7 @@ export interface components {
             /** @description Customer-facing announcement name. Empty or whitespace-only names are replaced with a readable generated fallback. */
             name?: string;
             /**
-             * @description Create-supported announcement types in the current backend. event_driven requires trigger_config.type=event_driven and trigger_config.webhook_event.
+             * @description Create-supported announcement types in the current PITCH service. event_driven requires trigger_config.type=event_driven and trigger_config.webhook_event.
              * @enum {string}
              */
             type: "instant" | "scheduled" | "repetitive" | "conditional" | "event_driven" | "chained";
@@ -910,7 +907,7 @@ export interface components {
             targets?: components["schemas"]["OutputTarget"][];
             /** @description Explicit group target shortcut. */
             group_id?: string;
-            /** @description Announcement content config, such as URL, asset, TTS, or chained content. event_driven requires durable playable content; prefer asset_id, and include checksum for URL content. Temporary TTS is not supported. */
+            /** @description Announcement content configuration, such as an uploaded asset, HTTPS audio, text-to-speech, or chained content. Event-driven announcements require durable playable content; prefer asset_id, and include a checksum for URL content. */
             content_config: {
                 [key: string]: unknown;
             };
@@ -959,7 +956,7 @@ export interface components {
             }[];
             decision?: components["schemas"]["DecisionPreviewSummary"];
         };
-        /** @description Exactly one of device_id, device_ids, targets, or group_id is accepted by request shape. The backend currently returns invalid_target for group_id because group delivery requires per-device expansion. Missing output_id defaults to main. */
+        /** @description Exactly one of device_id, device_ids, targets, or group_id is accepted by request shape. The PITCH service currently returns invalid_target for group_id because group delivery requires per-device expansion. Missing output_id defaults to main. */
         InstantAnnouncementRequest: ({
             name?: string;
             /** @description Single target device identifier. When output_id is omitted, this targets the main audio output slot. */
@@ -969,7 +966,7 @@ export interface components {
              * @default main
              */
             output_id: string;
-            /** @description Multiple target device identifiers. The backend creates one instant delivery per device. */
+            /** @description Multiple target device identifiers. The PITCH service creates one instant delivery per device. */
             device_ids?: string[];
             /** @description Explicit device/output targets for mixed main and aux batch delivery. device_ids may only be combined with targets when both normalize to the same target set. */
             targets?: components["schemas"]["OutputTarget"][];
@@ -1091,29 +1088,16 @@ export interface components {
             priority?: number;
             content?: components["schemas"]["DecisionPreviewCandidateContent"];
             device?: components["schemas"]["DecisionPreviewCandidateDevice"];
-            cache?: components["schemas"]["DecisionPreviewCandidateCache"];
-        };
-        DecisionPreviewCandidateCache: {
-            required?: boolean;
-            /** @enum {string} */
-            readiness?: "ready" | "unknown" | "blocked" | "not_required";
-            reason?: string;
         };
         DecisionPreviewCandidateDevice: {
             id?: string;
             known?: boolean;
             supports_offline_schedule?: boolean;
             supports_offline_schedule_known?: boolean;
-            storage_kind?: string;
-            /** Format: int64 */
-            storage_free_bytes?: number;
-            storage_missing?: boolean;
             /** Format: int64 */
             max_audio_bytes?: number;
             /** Format: int64 */
             max_duration_ms?: number;
-            /** Format: int64 */
-            max_cache_asset_bytes?: number;
         };
         DecisionPreviewCandidateContent: {
             type?: string;
@@ -1123,7 +1107,6 @@ export interface components {
             /** Format: int64 */
             size_bytes?: number;
             size_known?: boolean;
-            codec?: string;
             lifecycle?: string;
         };
         ScheduleConflict: {
@@ -1191,7 +1174,6 @@ export interface components {
         WebhookDeliveryLog: {
             id: string;
             webhook_id: string;
-            tenant_id: string;
             /** @example play.completed */
             event_type: string;
             /** @enum {string} */
@@ -1203,7 +1185,7 @@ export interface components {
             error?: string;
             /** Format: int64 */
             latency_ms?: number;
-            /** @description Current River delivery attempt number, starting at 1. */
+            /** @description Current delivery attempt number, starting at 1. */
             attempt_number?: number;
             /** @description Maximum attempts before the delivery becomes dead_letter. */
             max_attempts?: number;
@@ -1212,7 +1194,6 @@ export interface components {
         };
         Webhook: {
             id: string;
-            tenant_id: string;
             /** Format: uri */
             url: string;
             events: string[];
@@ -1301,7 +1282,7 @@ export interface components {
              */
             event_type: string;
             /**
-             * @description Required partner-supplied event identifier, unique with event_type inside the tenant.
+             * @description Required partner-supplied event identifier, unique with event_type for the customer.
              * @example bus-R12-MG_ROAD-20260710T083000Z
              */
             event_id: string;
@@ -1371,16 +1352,12 @@ export interface components {
             detail: string;
         };
         Device: {
-            /** @example spa_console_001 */
+            /** @example pitch_device_001 */
             id: string;
-            /** @example tenant_console */
-            tenant_id: string;
             /** @example Platform Gate Speaker */
             name: string;
             /** @example platform-1 */
             group_id?: string;
-            /** @enum {string} */
-            output_mode: "i2s" | "bluetooth" | "lineout";
             /** @description Audio output slots under this physical device. The main slot is the compatibility default when old requests or schedules provide device_id without output_id. */
             audio_outputs?: components["schemas"]["AudioOutputSlot"][];
             /** @enum {string} */
@@ -1388,102 +1365,21 @@ export interface components {
             /** Format: date-time */
             last_seen?: string | null;
             firmware_version?: string;
-            connectivity_type?: string;
-            /** Format: int64 */
-            sd_free_bytes?: number;
-            board_profile?: string;
-            storage_kind?: string;
-            /** Format: int64 */
-            storage_free_bytes?: number;
-            /** Format: int64 */
-            storage_capacity_bytes?: number;
-            storage_missing?: boolean;
-            /** Format: int64 */
-            indexed_asset_count?: number;
-            /** Format: int64 */
-            partial_cache_asset_count?: number;
-            /** Format: int64 */
-            partial_cache_bytes?: number;
-            /** Format: int64 */
-            partial_cache_expected_bytes?: number;
-            cache_status?: string;
-            cache_reason?: string;
-            cache_content_key?: string;
-            /** Format: int64 */
-            cache_bytes_done?: number;
-            /** Format: int64 */
-            cache_total_bytes?: number;
-            /** Format: int64 */
-            cache_spool_bytes?: number;
-            /** Format: int64 */
-            cache_defer_count?: number;
-            cache_spool_enabled?: boolean;
-            /** Format: int64 */
-            pending_proof_log_count?: number;
-            /** Format: int64 */
-            last_sd_mount_error?: number;
-            /** Format: int64 */
-            reset_reason?: number;
-            reset_reason_name?: string;
             content_readiness?: string;
-            manifest_id?: string;
-            /** Format: int64 */
-            max_audio_bytes?: number;
-            /** Format: int64 */
-            max_duration_ms?: number;
-            /** Format: int64 */
-            max_cache_asset_bytes?: number;
-            supports_offline_schedule?: boolean;
-            supports_schedule_delay_ms?: boolean;
-            supports_background_cache?: boolean;
-            supports_schedule_catalog_v2?: boolean;
-            supports_schedule_rules_v3?: boolean;
-            /** Format: int64 */
-            schedule_catalog_max_pages?: number;
-            /** Format: int64 */
-            schedule_ram_due_entries?: number;
-            /** Format: int64 */
-            schedule_max_page_bytes?: number;
-            desired_config?: {
-                [key: string]: unknown;
-            };
-            reported_config?: {
-                [key: string]: unknown;
-            };
-            /** Format: int64 */
-            desired_shadow_version?: number;
-            desired_shadow_hash?: string;
-            desired_shadow_bytes?: number;
-            /** Format: date-time */
-            desired_shadow_updated_at?: string | null;
-            /** Format: date-time */
-            last_delta_published_at?: string | null;
-            /** Format: date-time */
-            last_snapshot_fetched_at?: string | null;
             /** @example Asia/Kolkata */
             timezone: string;
             version: number;
-            created_by?: string;
-            updated_by?: string;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
-            /** Format: date-time */
-            deleted_at?: string | null;
         };
-        /** @description Child audio output target on a physical device. The durable identity is tenant_id, device_id, and output_id; when a request names device_id without output_id, the backend treats it as the main output slot. */
+        /** @description Child audio output target on a physical device. When a request names a device without output_id, the PITCH service targets the main output slot. */
         AudioOutputSlot: {
             /** @example main */
             id: string;
             /** @example Lobby speakers */
             label?: string;
-            /** @example lineout_main */
-            role?: string;
-            /** @example pcm5102 */
-            chip?: string;
-            /** @example i2s */
-            output_mode?: string;
             enabled: boolean;
             ready: boolean;
             supports_independent_playback: boolean;
@@ -1492,16 +1388,32 @@ export interface components {
             supports_parallel_live_playback?: boolean;
             volume?: number;
             playback_active: boolean;
-            reported?: {
-                [key: string]: unknown;
-            };
-            reported_present?: boolean;
             /** Format: date-time */
             last_reported_at?: string | null;
             targetable?: boolean;
             available?: boolean;
             /** @enum {string} */
             availability_reason?: "output_not_reported" | "output_disabled" | "device_offline" | "capability_stale" | "output_not_ready";
+        };
+        DeliveryTrace: {
+            /** @description Correlation identifier supplied in the request path. */
+            correlationId: string;
+            /** @description Delivery lifecycle events ordered by time. */
+            events: components["schemas"]["DeliveryTraceEvent"][];
+        };
+        DeliveryTraceEvent: {
+            deviceId: string;
+            /** @default main */
+            outputId: string;
+            msgId: string;
+            announcementId?: string;
+            type: string;
+            detail: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            timestamp: string;
         };
         TargetBinding: {
             namespace: string;
@@ -1510,7 +1422,6 @@ export interface components {
             zone_id: string;
             /** Format: int64 */
             version: number;
-            created_by: string;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1571,7 +1482,6 @@ export interface components {
                 ready: number;
                 blocked: number;
             };
-            created_by: string;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1624,7 +1534,7 @@ export interface components {
         };
     };
     responses: {
-        /** @description The authenticated tenant or client IP exceeded its configured per-minute quota. */
+        /** @description The authenticated customer or client IP exceeded its configured per-minute quota. */
         RateLimited: {
             headers: {
                 /** @description Seconds until the current minute bucket resets. */
@@ -1743,7 +1653,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Tenant device page. */
+            /** @description Device page. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2122,7 +2032,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeliveryTrace"];
+                };
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
@@ -2200,7 +2112,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Tenant webhooks. */
+            /** @description Webhook endpoints. */
             200: {
                 headers: {
                     [name: string]: unknown;

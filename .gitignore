@@ -1,3 +1,6 @@
 node_modules/
 dist/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/public/pitch-v1.yaml
 *.tsbuildinfo

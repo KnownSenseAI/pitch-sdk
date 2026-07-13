@@ -7,8 +7,8 @@ servers:
   - url: https://pitch.knownsense.ai
     description: Production
 security:
-  - bearerAuth: []
   - apiKeyAuth: []
+  - bearerAuth: []
 paths:
   /v1/devices:
     get:
@@ -17,8 +17,8 @@ paths:
       x-pitch-scope:
         - devices:read
       x-pitch-idempotency: none
-      summary: List tenant devices and authoritative audio outputs
-      description: Requires JWT role or API key scope devices:read. Results are cursor paginated and may be filtered by status, group_id, and search.
+      summary: List devices and authoritative audio outputs
+      description: Requires access token or API key scope devices:read. Results are cursor paginated and may be filtered by status, group_id, and search.
       tags:
         - Devices
       parameters:
@@ -60,7 +60,7 @@ paths:
             maximum: 500
       responses:
         "200":
-          description: Tenant device page.
+          description: Device page.
           content:
             application/json:
               schema:
@@ -123,7 +123,7 @@ paths:
       x-pitch-scope:
         - zones:read
       x-pitch-idempotency: none
-      summary: List tenant output zones
+      summary: List output zones
       description: Requires zones:read. Members are stable-sorted explicit device/output pairs.
       tags:
         - Zones
@@ -460,6 +460,10 @@ paths:
       responses:
         "200":
           description: Correlated delivery events, including deviceId, outputId, msgId, type, detail, and timestamp.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryTrace"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -474,7 +478,7 @@ paths:
         - devices:read
       x-pitch-idempotency: none
       summary: Get device
-      description: Returns one tenant-scoped device snapshot from the durable registry.
+      description: Returns one customer-scoped device snapshot from the durable registry.
       tags:
         - Devices
       parameters:
@@ -504,7 +508,7 @@ paths:
         - logs:read
       x-pitch-idempotency: none
       summary: List announcement delivery timelines
-      description: Returns tenant-scoped proof-of-play delivery timelines, newest first.
+      description: Returns customer-scoped proof-of-play delivery timelines, newest first.
       tags:
         - Logs
       parameters:
@@ -554,14 +558,14 @@ paths:
       x-pitch-scope: []
       x-pitch-idempotency: none
       summary: List webhooks
-      description: Lists tenant-owned webhook endpoints. Requires a PITCH JWT for an owner or admin; partner API keys cannot manage webhook configuration.
+      description: Lists customer-owned webhook endpoints. Requires a PITCH access token for an owner or admin; partner API keys cannot manage webhook configuration.
       tags:
         - Webhooks
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: Tenant webhooks.
+          description: Webhook endpoints.
           content:
             application/json:
               schema:
@@ -580,7 +584,7 @@ paths:
       x-pitch-scope: []
       x-pitch-idempotency: none
       summary: Create webhook
-      description: Creates a tenant-owned webhook endpoint for an owner or admin and returns the signing secret once. Production URLs must use public HTTPS.
+      description: Creates a customer-owned webhook endpoint for an owner or admin and returns the signing secret once. Production URLs must use public HTTPS.
       tags:
         - Webhooks
       security:
@@ -616,7 +620,7 @@ paths:
         - announce:write
       x-pitch-idempotency: required
       summary: Publish a partner business event
-      description: Publishes a meaningful business event for event-driven announcements. Partners should convert GPS or sensor streams into business events before calling this API; PITCH does not accept raw GPS traces here.
+      description: Publishes an application-owned business event for matching event-driven announcements.
       tags:
         - Events
       security:
@@ -676,12 +680,12 @@ paths:
         - logs:read
       x-pitch-idempotency: none
       summary: List durable partner event occurrences
-      description: Returns tenant-scoped event outcomes. Raw GPS traces are not accepted or returned.
+      description: Returns the authenticated customer's event outcomes and per-output delivery results.
       tags:
         - Events
       security:
-        - bearerAuth: []
         - apiKeyAuth: []
+        - bearerAuth: []
       parameters:
         - name: event_type
           in: query
@@ -722,8 +726,8 @@ paths:
       tags:
         - Events
       security:
-        - bearerAuth: []
         - apiKeyAuth: []
+        - bearerAuth: []
       parameters:
         - name: occurrenceId
           in: path
@@ -812,7 +816,7 @@ paths:
       x-pitch-scope: []
       x-pitch-idempotency: none
       summary: Update webhook
-      description: Updates webhook URL or subscribed event types. Requires an owner or admin PITCH JWT.
+      description: Updates webhook URL or subscribed event types. Requires an owner or admin PITCH access token.
       tags:
         - Webhooks
       security:
@@ -854,7 +858,7 @@ paths:
       x-pitch-scope: []
       x-pitch-idempotency: none
       summary: Delete webhook
-      description: Soft-deletes a tenant-owned webhook endpoint. Requires an owner or admin PITCH JWT.
+      description: Soft-deletes a customer-owned webhook endpoint. Requires an owner or admin PITCH access token.
       tags:
         - Webhooks
       security:
@@ -886,7 +890,7 @@ paths:
         - logs:read
       x-pitch-idempotency: none
       summary: List webhook deliveries
-      description: Lists delivery attempts for one webhook. Console users can read this with PITCH JWT auth; partner API keys need logs:read.
+      description: Lists delivery attempts for one webhook. Console users can read this with PITCH access token auth; partner API keys need logs:read.
       tags:
         - Webhooks
       parameters:
@@ -1191,7 +1195,7 @@ paths:
         - announce:write
       x-pitch-idempotency: required
       summary: Queue an instant announcement
-      description: Queues an immediate announcement for one device target shape. The request accepts exactly one of device_id, device_ids, targets, or group_id; group_id is currently rejected by the backend with invalid_target. Missing output_id defaults to main. Non-main outputs require the device to report that output as enabled and ready. Independent playback describes cross-output overlap and is not required for single-output targeting.
+      description: Queues an immediate announcement for one device target shape. The request accepts exactly one of device_id, device_ids, targets, or group_id; group_id is currently rejected by the PITCH service with invalid_target. Missing output_id defaults to main. Non-main outputs require the device to report that output as enabled and ready. Independent playback describes cross-output overlap and is not required for single-output targeting.
       tags:
         - Announcements
       security:
@@ -1240,7 +1244,7 @@ paths:
         - announce:write
       x-pitch-idempotency: none
       summary: List announcements
-      description: Returns tenant-scoped announcements with optional status filtering and cursor pagination.
+      description: Returns customer-scoped announcements with optional status filtering and cursor pagination.
       tags:
         - Announcements
       security:
@@ -1353,7 +1357,7 @@ paths:
         - announce:write
       x-pitch-idempotency: none
       summary: Get an announcement
-      description: Returns one tenant-scoped announcement by identifier.
+      description: Returns one customer-scoped announcement by identifier.
       tags:
         - Announcements
       security:
@@ -1558,7 +1562,7 @@ paths:
       x-pitch-scope:
         - outputs:control
       x-pitch-idempotency: none
-      summary: List tenant output controls
+      summary: List output controls
       tags:
         - Output Controls
       parameters:
@@ -1621,7 +1625,7 @@ paths:
 components:
   responses:
     RateLimited:
-      description: The authenticated tenant or client IP exceeded its configured per-minute quota.
+      description: The authenticated customer or client IP exceeded its configured per-minute quota.
       headers:
         Retry-After:
           description: Seconds until the current minute bucket resets.
@@ -1704,17 +1708,17 @@ components:
               example: unauthorized
             message:
               type: string
-              example: missing tenant context
+              example: authentication context is missing
             details:
               type: object
               additionalProperties: true
               description: Optional machine-readable details for field-level or input-specific errors.
               example:
                 validation_issues:
-                  - code: unsupported_tts_symbol
+                  - code: unsupported_value
                     severity: warning
-                    message: Emoji, decorative symbols, and formatting marks are removed before speech because they cannot be read naturally.
-                    text: 🎉
+                    message: The requested value is not supported.
+                    field: content_config.type
     OutputControlOperation:
       type: object
       required:
@@ -1901,7 +1905,7 @@ components:
           type: string
         decision_id:
           type: string
-          description: Canonical existing decision_executions execution ID for the emergency playback proof.
+          description: Durable decision identifier for emergency playback proof.
         created_at:
           type: string
           format: date-time
@@ -1975,7 +1979,7 @@ components:
               type: boolean
             asset_id:
               type: string
-              description: Tenant-owned immutable audio asset; arbitrary URLs are forbidden.
+              description: Customer-owned immutable audio asset; arbitrary URLs are forbidden.
         reason:
           type: string
           minLength: 1
@@ -2078,7 +2082,6 @@ components:
       type: object
       required:
         - id
-        - tenant_id
         - name
         - type
         - status
@@ -2089,11 +2092,8 @@ components:
         - created_at
         - updated_at
         - version
-        - created_by
       properties:
         id:
-          type: string
-        tenant_id:
           type: string
         name:
           type: string
@@ -2144,8 +2144,6 @@ components:
                 format: date-time
               reason:
                 type: string
-              changed_by:
-                type: string
         starts_at:
           type: string
           format: date-time
@@ -2163,8 +2161,6 @@ components:
           format: date-time
         version:
           type: integer
-        created_by:
-          type: string
         decision:
           $ref: "#/components/schemas/DecisionPreviewSummary"
     TriggerConfig:
@@ -2179,13 +2175,9 @@ components:
             - scheduled
             - repetitive
             - event_driven
-            - geo_triggered
-            - sensor_triggered
             - chained
             - conditional
             - dynamic
-            - subscription
-            - interactive
         cron_expr:
           type: string
           example: 0 9 * * 1-5
@@ -2255,7 +2247,7 @@ components:
             $ref: "#/components/schemas/RuleCondition"
         groups:
           type: array
-          description: Nested rule groups. Backend evaluation currently caps depth at 5.
+          description: Nested rule groups. PITCH service evaluation currently caps depth at 5.
           items:
             $ref: "#/components/schemas/Rule"
     RuleCondition:
@@ -2300,7 +2292,7 @@ components:
             - conditional
             - event_driven
             - chained
-          description: Create-supported announcement types in the current backend. event_driven requires trigger_config.type=event_driven and trigger_config.webhook_event.
+          description: Create-supported announcement types in the current PITCH service. event_driven requires trigger_config.type=event_driven and trigger_config.webhook_event.
         targeting_config:
           type: object
           additionalProperties: true
@@ -2325,7 +2317,7 @@ components:
         content_config:
           type: object
           additionalProperties: true
-          description: Announcement content config, such as URL, asset, TTS, or chained content. event_driven requires durable playable content; prefer asset_id, and include checksum for URL content. Temporary TTS is not supported.
+          description: Announcement content configuration, such as an uploaded asset, HTTPS audio, text-to-speech, or chained content. Event-driven announcements require durable playable content; prefer asset_id, and include a checksum for URL content.
         trigger_config:
           $ref: "#/components/schemas/TriggerConfig"
         priority:
@@ -2417,7 +2409,7 @@ components:
           $ref: "#/components/schemas/DecisionPreviewSummary"
     InstantAnnouncementRequest:
       type: object
-      description: Exactly one of device_id, device_ids, targets, or group_id is accepted by request shape. The backend currently returns invalid_target for group_id because group delivery requires per-device expansion. Missing output_id defaults to main.
+      description: Exactly one of device_id, device_ids, targets, or group_id is accepted by request shape. The PITCH service currently returns invalid_target for group_id because group delivery requires per-device expansion. Missing output_id defaults to main.
       oneOf:
         - required:
             - device_id
@@ -2448,7 +2440,7 @@ components:
           minItems: 1
           items:
             type: string
-          description: Multiple target device identifiers. The backend creates one instant delivery per device.
+          description: Multiple target device identifiers. The PITCH service creates one instant delivery per device.
         targets:
           type: array
           minItems: 1
@@ -2692,22 +2684,6 @@ components:
           $ref: "#/components/schemas/DecisionPreviewCandidateContent"
         device:
           $ref: "#/components/schemas/DecisionPreviewCandidateDevice"
-        cache:
-          $ref: "#/components/schemas/DecisionPreviewCandidateCache"
-    DecisionPreviewCandidateCache:
-      type: object
-      properties:
-        required:
-          type: boolean
-        readiness:
-          type: string
-          enum:
-            - ready
-            - unknown
-            - blocked
-            - not_required
-        reason:
-          type: string
     DecisionPreviewCandidateDevice:
       type: object
       properties:
@@ -2719,20 +2695,10 @@ components:
           type: boolean
         supports_offline_schedule_known:
           type: boolean
-        storage_kind:
-          type: string
-        storage_free_bytes:
-          type: integer
-          format: int64
-        storage_missing:
-          type: boolean
         max_audio_bytes:
           type: integer
           format: int64
         max_duration_ms:
-          type: integer
-          format: int64
-        max_cache_asset_bytes:
           type: integer
           format: int64
     DecisionPreviewCandidateContent:
@@ -2751,8 +2717,6 @@ components:
           format: int64
         size_known:
           type: boolean
-        codec:
-          type: string
         lifecycle:
           type: string
     ScheduleConflict:
@@ -2879,7 +2843,6 @@ components:
       required:
         - id
         - webhook_id
-        - tenant_id
         - event_type
         - status
         - created_at
@@ -2887,8 +2850,6 @@ components:
         id:
           type: string
         webhook_id:
-          type: string
-        tenant_id:
           type: string
         event_type:
           type: string
@@ -2914,7 +2875,7 @@ components:
           format: int64
         attempt_number:
           type: integer
-          description: Current River delivery attempt number, starting at 1.
+          description: Current delivery attempt number, starting at 1.
         max_attempts:
           type: integer
           description: Maximum attempts before the delivery becomes dead_letter.
@@ -2925,7 +2886,6 @@ components:
       type: object
       required:
         - id
-        - tenant_id
         - url
         - events
         - active
@@ -2933,8 +2893,6 @@ components:
         - updated_at
       properties:
         id:
-          type: string
-        tenant_id:
           type: string
         url:
           type: string
@@ -3127,7 +3085,7 @@ components:
         event_id:
           type: string
           minLength: 1
-          description: Required partner-supplied event identifier, unique with event_type inside the tenant.
+          description: Required partner-supplied event identifier, unique with event_type for the customer.
           example: bus-R12-MG_ROAD-20260710T083000Z
         occurred_at:
           type: string
@@ -3243,9 +3201,7 @@ components:
       type: object
       required:
         - id
-        - tenant_id
         - name
-        - output_mode
         - status
         - created_at
         - updated_at
@@ -3254,22 +3210,13 @@ components:
       properties:
         id:
           type: string
-          example: spa_console_001
-        tenant_id:
-          type: string
-          example: tenant_console
+          example: pitch_device_001
         name:
           type: string
           example: Platform Gate Speaker
         group_id:
           type: string
           example: platform-1
-        output_mode:
-          type: string
-          enum:
-            - i2s
-            - bluetooth
-            - lineout
         audio_outputs:
           type: array
           description: Audio output slots under this physical device. The main slot is the compatibility default when old requests or schedules provide device_id without output_id.
@@ -3287,145 +3234,22 @@ components:
           nullable: true
         firmware_version:
           type: string
-        connectivity_type:
-          type: string
-        sd_free_bytes:
-          type: integer
-          format: int64
-        board_profile:
-          type: string
-        storage_kind:
-          type: string
-        storage_free_bytes:
-          type: integer
-          format: int64
-        storage_capacity_bytes:
-          type: integer
-          format: int64
-        storage_missing:
-          type: boolean
-        indexed_asset_count:
-          type: integer
-          format: int64
-        partial_cache_asset_count:
-          type: integer
-          format: int64
-        partial_cache_bytes:
-          type: integer
-          format: int64
-        partial_cache_expected_bytes:
-          type: integer
-          format: int64
-        cache_status:
-          type: string
-        cache_reason:
-          type: string
-        cache_content_key:
-          type: string
-        cache_bytes_done:
-          type: integer
-          format: int64
-        cache_total_bytes:
-          type: integer
-          format: int64
-        cache_spool_bytes:
-          type: integer
-          format: int64
-        cache_defer_count:
-          type: integer
-          format: int64
-        cache_spool_enabled:
-          type: boolean
-        pending_proof_log_count:
-          type: integer
-          format: int64
-        last_sd_mount_error:
-          type: integer
-          format: int64
-        reset_reason:
-          type: integer
-          format: int64
-        reset_reason_name:
-          type: string
         content_readiness:
           type: string
-        manifest_id:
-          type: string
-        max_audio_bytes:
-          type: integer
-          format: int64
-        max_duration_ms:
-          type: integer
-          format: int64
-        max_cache_asset_bytes:
-          type: integer
-          format: int64
-        supports_offline_schedule:
-          type: boolean
-        supports_schedule_delay_ms:
-          type: boolean
-        supports_background_cache:
-          type: boolean
-        supports_schedule_catalog_v2:
-          type: boolean
-        supports_schedule_rules_v3:
-          type: boolean
-        schedule_catalog_max_pages:
-          type: integer
-          format: int64
-        schedule_ram_due_entries:
-          type: integer
-          format: int64
-        schedule_max_page_bytes:
-          type: integer
-          format: int64
-        desired_config:
-          type: object
-          additionalProperties: true
-        reported_config:
-          type: object
-          additionalProperties: true
-        desired_shadow_version:
-          type: integer
-          format: int64
-        desired_shadow_hash:
-          type: string
-        desired_shadow_bytes:
-          type: integer
-        desired_shadow_updated_at:
-          type: string
-          format: date-time
-          nullable: true
-        last_delta_published_at:
-          type: string
-          format: date-time
-          nullable: true
-        last_snapshot_fetched_at:
-          type: string
-          format: date-time
-          nullable: true
         timezone:
           type: string
           example: Asia/Kolkata
         version:
           type: integer
-        created_by:
-          type: string
-        updated_by:
-          type: string
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
-        deleted_at:
-          type: string
-          format: date-time
-          nullable: true
     AudioOutputSlot:
       type: object
-      description: Child audio output target on a physical device. The durable identity is tenant_id, device_id, and output_id; when a request names device_id without output_id, the backend treats it as the main output slot.
+      description: Child audio output target on a physical device. When a request names a device without output_id, the PITCH service targets the main output slot.
       required:
         - id
         - enabled
@@ -3440,15 +3264,6 @@ components:
         label:
           type: string
           example: Lobby speakers
-        role:
-          type: string
-          example: lineout_main
-        chip:
-          type: string
-          example: pcm5102
-        output_mode:
-          type: string
-          example: i2s
         enabled:
           type: boolean
         ready:
@@ -3467,11 +3282,6 @@ components:
           maximum: 100
         playback_active:
           type: boolean
-        reported:
-          type: object
-          additionalProperties: true
-        reported_present:
-          type: boolean
         last_reported_at:
           type: string
           format: date-time
@@ -3488,6 +3298,49 @@ components:
             - device_offline
             - capability_stale
             - output_not_ready
+    DeliveryTrace:
+      type: object
+      required:
+        - correlationId
+        - events
+      properties:
+        correlationId:
+          type: string
+          description: Correlation identifier supplied in the request path.
+        events:
+          type: array
+          description: Delivery lifecycle events ordered by time.
+          items:
+            $ref: "#/components/schemas/DeliveryTraceEvent"
+    DeliveryTraceEvent:
+      type: object
+      required:
+        - deviceId
+        - outputId
+        - msgId
+        - type
+        - detail
+        - timestamp
+      properties:
+        deviceId:
+          type: string
+        outputId:
+          type: string
+          default: main
+        msgId:
+          type: string
+        announcementId:
+          type: string
+        type:
+          type: string
+        detail:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
     TargetBinding:
       type: object
       required:
@@ -3495,7 +3348,6 @@ components:
         - external_id
         - zone_id
         - version
-        - created_by
         - created_at
         - updated_at
       properties:
@@ -3509,8 +3361,6 @@ components:
         version:
           type: integer
           format: int64
-        created_by:
-          type: string
         created_at:
           type: string
           format: date-time
@@ -3620,7 +3470,6 @@ components:
         - target_hash
         - members
         - availability
-        - created_by
         - created_at
         - updated_at
       properties:
@@ -3653,8 +3502,6 @@ components:
               type: integer
             blocked:
               type: integer
-        created_by:
-          type: string
         created_at:
           type: string
           format: date-time
@@ -3830,8 +3677,8 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: PITCH JWT
-      description: PITCH access JWT containing user, tenant, and tenant-role claims.
+      bearerFormat: PITCH access token
+      description: PITCH access token for supported owner/admin operations.
     apiKeyAuth:
       type: apiKey
       in: header

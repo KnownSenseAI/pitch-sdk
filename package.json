@@ -1,20 +1,29 @@
 {
   "name": "@KnownSenseAI/pitch-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Server-side TypeScript SDK for the PITCH Partner API v1",
   "type": "module",
   "sideEffects": false,
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/KnownSenseAI/pitch-sdk.git"
   },
-  "homepage": "https://github.com/KnownSenseAI/pitch-sdk#readme",
-  "bugs": { "url": "https://github.com/KnownSenseAI/pitch-sdk/issues" },
-  "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  "homepage": "https://knownsenseai.github.io/pitch-sdk/",
+  "bugs": {
+    "url": "https://github.com/KnownSenseAI/pitch-sdk/issues"
   },
-  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "generate": "openapi-typescript openapi/pitch-v1.yaml -o src/generated/openapi.ts",
     "filter:openapi": "node scripts/filter-public-openapi.mjs openapi/pitch-v1.yaml --write",
@@ -23,15 +32,25 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",
-    "check": "npm run check:public-contract && npm run check:generated && npm run typecheck && npm test && npm run build",
+    "docs:prepare": "node scripts/prepare-docs.mjs",
+    "docs:dev": "npm run docs:prepare && vitepress dev docs",
+    "docs:build": "npm run docs:prepare && vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "check": "npm run check:public-contract && npm run check:generated && npm run typecheck && npm test && npm run build && npm run docs:build",
     "prepare": "npm run build",
     "prepublishOnly": "npm run check"
   },
   "devDependencies": {
+    "@scalar/api-reference": "^1.62.5",
     "@types/node": "^22.18.0",
     "openapi-typescript": "^7.10.1",
     "typescript": "^5.9.3",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.5",
+    "vue": "^3.5.39",
     "yaml": "^2.8.1"
+  },
+  "overrides": {
+    "vite": "6.4.3"
   }
 }

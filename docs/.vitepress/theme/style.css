@@ -1,0 +1,21 @@
+.api-reference-page .VPDoc .container,
+.api-reference-page .VPDoc .content,
+.api-reference-page .VPDoc .content-container {
+  max-width: none !important;
+}
+
+.api-reference-page .VPDoc {
+  padding-inline: 0;
+}
+
+.api-reference-page .vp-doc > h1,
+.api-reference-page .vp-doc > p {
+  margin-inline: auto;
+  max-width: 1152px;
+  padding-inline: 24px;
+}
+
+.pitch-api-reference {
+  min-height: 70vh;
+  margin-top: 24px;
+}

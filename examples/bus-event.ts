@@ -1,13 +1,18 @@
-import { PitchClient } from "../src/index.js";
+import { idempotencyKey, pitchClient, runExample } from "./_shared.js";
 
-const client = new PitchClient({ baseUrl: process.env.PITCH_BASE_URL!, apiKey: process.env.PITCH_API_KEY! });
+await runExample(async () => {
+  const client = pitchClient();
+  const occurredAt = new Date().toISOString();
 
-// The upstream fleet system converts location observations into this business
-// event. PITCH intentionally does not ingest or retain raw GPS traces.
-await client.events.publish({
-  event_id: `bus-R12-MG_ROAD-${new Date().toISOString()}`,
-  event_type: "bus.stop.approaching",
-  occurred_at: new Date().toISOString(),
-  data: { route: "R12", stop: "MG_ROAD", direction: "northbound" },
-  interrupt_active: false,
+  // Your application decides when this business event occurs. PITCH receives
+  // only the event and business metadata needed to match announcement rules.
+  const occurrence = await client.events.publish({
+    event_id: `bus-R12-MG_ROAD-${occurredAt}`,
+    event_type: "bus.stop.approaching",
+    occurred_at: occurredAt,
+    data: { route_id: "R12", stop_id: "MG_ROAD", direction: "northbound" },
+    interrupt_active: false,
+  }, idempotencyKey("bus-stop"));
+
+  console.log("event accepted", occurrence);
 });

@@ -9,7 +9,7 @@ Until an npm-registry release is available, pin the public GitHub release in you
 ```json
 {
   "dependencies": {
-    "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.1.0"
+      "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.2.0"
   }
 }
 ```
@@ -27,7 +27,7 @@ const pitch = new PitchClient({
 });
 ```
 
-API-key mode is the default for partner operations. Server processes calling owner/admin JWT-only webhook management routes may instead inject an already-issued PITCH token with `{ bearerToken }`. The two credentials are mutually exclusive; the SDK does not acquire, refresh, persist, or expose browser sessions.
+API-key mode is the default for partner operations. Server processes calling owner/admin access-token-only webhook management routes may instead inject an already-issued PITCH token with `{ bearerToken }`. The two credentials are mutually exclusive; the SDK does not acquire, refresh, persist, or expose browser sessions.
 
 Store API keys only in server-side secret storage. Required-idempotency methods require a caller key; event publication defaults it from `event_id`. Inspect `PitchAPIError` for the structured code, details, correlation ID, retry delay, and rate-limit headers. The SDK never retries automatically.
 
@@ -35,9 +35,9 @@ The client exposes the complete partner catalog through `devices`, `announcement
 
 Schedule operations live under `client.schedules`. The original pre-1.0 `announcements.updateSchedule`, `announcements.preview`, `announcements.pause`, and `announcements.deleteSchedule` names remain as compatibility aliases. `announcements.delete` deletes the announcement definition through `/v1/announcements/{id}`.
 
-The SDK sends API keys with `X-Pitch-Key`. The backend also accepts the legacy `X-SmartPA-Key` alias so deployed integrations continue to work.
+The SDK sends API keys with `X-Pitch-Key`. The PITCH service also accepts the legacy `X-SmartPA-Key` alias so deployed integrations continue to work.
 
-Webhook verification uses `X-Pitch-Signature-Version: v1`, `X-Pitch-Timestamp`, and `X-Pitch-Signature: sha256=<hex>`. Use `readWebhookSignatureHeaders(request.headers)` to read the PITCH headers with a safe legacy fallback, then pass the exact raw request bytes to `verifyWebhookSignature` before parsing JSON. During the compatibility window the backend emits matching `X-Pitch-*` and `X-SmartPA-*` webhook headers.
+Webhook verification uses `X-Pitch-Signature-Version: v1`, `X-Pitch-Timestamp`, and `X-Pitch-Signature: sha256=<hex>`. Use `readWebhookSignatureHeaders(request.headers)` to read the PITCH headers with a safe legacy fallback, then pass the exact raw request bytes to `verifyWebhookSignature` before parsing JSON. During the compatibility window the PITCH service emits matching `X-Pitch-*` and `X-SmartPA-*` webhook headers.
 
 ```ts
 import {
@@ -55,11 +55,26 @@ if (!signature || !verifyWebhookSignature({
 }
 ```
 
-Webhook configuration is owner/admin JWT-only in v1. Use server-side `bearerToken` mode for those wrappers; API keys are rejected by the service. Browser/session acquisition remains outside this SDK's scope.
+Webhook configuration is owner/admin access-token-only in v1. Use server-side `bearerToken` mode for those wrappers; API keys are rejected by the service. Browser/session acquisition remains outside this SDK's scope.
 
 ## Header migration
 
-New SDK requests use `X-Pitch-Key`. PITCH webhook responses use `X-Pitch-Signature`, `X-Pitch-Signature-Version`, `X-Pitch-Timestamp`, and `X-Pitch-Event`. The backend temporarily accepts or emits matching `X-SmartPA-*` aliases for deployed integrations; do not use the legacy names in new code.
+New SDK requests use `X-Pitch-Key`. PITCH webhook responses use `X-Pitch-Signature`, `X-Pitch-Signature-Version`, `X-Pitch-Timestamp`, and `X-Pitch-Event`. The PITCH service temporarily accepts or emits matching `X-SmartPA-*` aliases for deployed integrations; do not use the legacy names in new code.
+
+## Documentation and examples
+
+The [PITCH developer documentation](https://knownsenseai.github.io/pitch-sdk/) includes product-oriented guides and a searchable browser reference generated from the same OpenAPI contract as the SDK types. Browser-side API execution is disabled so partner credentials remain server-side.
+
+Runnable, CI-typechecked examples cover:
+
+- device and output discovery with target preflight;
+- instant and scheduled announcements;
+- application-owned business events;
+- audited output controls and zone preflight;
+- delivery tracing; and
+- raw-body webhook verification.
+
+See the [`examples`](./examples) directory for complete programs and required environment variables.
 
 ## Development
 

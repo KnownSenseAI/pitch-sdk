@@ -1,0 +1,28 @@
+# Scheduled announcements
+
+Preview a schedule before creating it. The preview resolves upcoming fire times and can surface conflicts or warnings without committing the announcement.
+
+```ts
+const trigger = {
+  type: "scheduled" as const,
+  mode: "weekly" as const,
+  cron_expr: "0 9 * * 1-5",
+  timezone: "Asia/Kolkata",
+};
+
+const preview = await pitch.schedules.preview({
+  type: "scheduled",
+  trigger_config: trigger,
+  device_id: "device-123",
+  output_id: "main",
+  content_config: { type: "asset", asset_id: "asset-456" },
+  priority: 1,
+  limit: 5,
+});
+
+console.log(preview.next_fire_times, preview.conflicts);
+```
+
+After reviewing the result, create the durable announcement definition with `pitch.announcements.create`. Keep the timezone explicit and use the warning confirmation token only when your product has shown the warning to an authorized user.
+
+Manage existing schedules through `pitch.schedules`: list, update, pause, resume, or delete. Update operations support whole-schedule and occurrence-scoped edits where documented by the API.
