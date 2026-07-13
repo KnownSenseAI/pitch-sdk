@@ -9,12 +9,14 @@ Until an npm-registry release is available, pin the public GitHub release in you
 ```json
 {
   "dependencies": {
-      "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.3.0"
+      "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.3.1"
   }
 }
 ```
 
 Then run `npm install`.
+
+For production observability, see [Delivery monitoring](./docs/guides/delivery-monitoring.md) and [Data retention](./docs/guides/data-retention.md).
 
 ## Use
 

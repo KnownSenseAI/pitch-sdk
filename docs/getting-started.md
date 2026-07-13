@@ -13,7 +13,7 @@ The PITCH SDK is intended for trusted server processes. Keep the API key in your
 Until the npm-registry release is available, pin the public GitHub release:
 
 ```bash
-npm install "github:KnownSenseAI/pitch-sdk#v0.3.0"
+npm install "github:KnownSenseAI/pitch-sdk#v0.3.1"
 ```
 
 Your application imports it by its package name:
@@ -69,4 +69,4 @@ await pitch.announcements.announceInstant(body, order.announcementRequestId, {
 });
 ```
 
-Continue with the [runnable examples](/examples) or the [Partner API reference](/api-reference).
+Continue with the [runnable examples](/examples) or the [Partner API reference](/api-reference). For production observability, review [Delivery monitoring](/guides/delivery-monitoring) and [Data retention](/guides/data-retention).
