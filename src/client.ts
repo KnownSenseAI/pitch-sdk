@@ -18,6 +18,9 @@ export type SuccessResponse<OperationID extends keyof operations> = {
     : never;
 }[keyof operations[OperationID]["responses"]];
 
+type OperationQuery<OperationID extends keyof operations> =
+  NonNullable<operations[OperationID]["parameters"]["query"]>;
+
 interface PitchClientBaseOptions {
   baseUrl: string;
   fetch?: typeof globalThis.fetch;
@@ -34,6 +37,10 @@ export interface RequestOptions {
   correlationId?: string | undefined;
   signal?: AbortSignal | undefined;
 }
+
+export type DeliveryListQuery = OperationQuery<"listDeliveryLogs">;
+type DeliveryTraceQuery = OperationQuery<"getDeliveryTrace">;
+export type DeliveryTraceOptions = RequestOptions & DeliveryTraceQuery;
 
 export interface AudioUploadInput {
   file: Blob;
@@ -140,8 +147,8 @@ export class PitchClient {
       listOccurrences: (query?: Query, options?: RequestOptions) => this.request<"listEventOccurrences">("GET", "/v1/event-occurrences", undefined, { ...options, query }),
     };
     this.deliveries = {
-      list: (query?: Query, options?: RequestOptions) => this.request<"listDeliveryLogs">("GET", "/v1/logs/deliveries", undefined, { ...options, query }),
-      getTrace: (correlationId: string, options?: RequestOptions) => this.request<"getDeliveryTrace">("GET", `/v1/logs/deliveries/trace/${segment(correlationId)}`, undefined, options),
+      list: (query?: DeliveryListQuery, options?: RequestOptions) => this.request<"listDeliveryLogs">("GET", "/v1/logs/deliveries", undefined, { ...options, query }),
+      getTrace: (correlationId: string, { limit, ...options }: DeliveryTraceOptions = {}) => this.request<"getDeliveryTrace">("GET", `/v1/logs/deliveries/trace/${segment(correlationId)}`, undefined, { ...options, query: { limit } }),
     };
     this.webhooks = {
       create: (body: JSONBody<"/v1/webhooks", "post">, options?: RequestOptions) => this.request<"createWebhook">("POST", "/v1/webhooks", body, options),

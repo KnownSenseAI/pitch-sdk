@@ -245,7 +245,7 @@ export interface paths {
         };
         /**
          * List announcement delivery timelines
-         * @description Returns customer-scoped proof-of-play delivery timelines, newest first.
+         * @description Returns customer-scoped proof-of-play delivery timelines ordered newest first. Raw delivery history is queryable for up to seven days; older rows are deleted.
          */
         get: operations["listDeliveryLogs"];
         put?: never;
@@ -1524,8 +1524,7 @@ export interface components {
             url: string;
             /**
              * @example [
-             *       "play.completed",
-             *       "device.offline"
+             *       "play.completed"
              *     ]
              */
             events: string[];
@@ -1536,6 +1535,7 @@ export interface components {
         DeliveryTimelineListResponse: {
             deliveries: components["schemas"]["DeliveryTimeline"][];
             total?: number;
+            /** @description Opaque next-page cursor; an empty or omitted value means there is no next page. */
             cursor?: string;
         };
         DeliveryTimeline: {
@@ -1545,7 +1545,9 @@ export interface components {
             outputId: string;
             correlationId: string;
             /** @enum {string} */
-            status: "played" | "failed" | "pending" | "published";
+            status: "played" | "failed" | "pending" | "published" | "received" | "started";
+            /** @description Customer-visible, product-neutral diagnostic text for a failed delivery; values are human-readable and are not a stable enum. */
+            failureReason?: string;
             events: components["schemas"]["DeliveryEvent"][];
         };
         DeliveryEvent: {
@@ -2447,11 +2449,13 @@ export interface operations {
                 limit?: components["parameters"]["Limit"];
                 /** @description Opaque pagination cursor from the previous response. */
                 cursor?: components["parameters"]["Cursor"];
+                announcement_id?: string;
                 device_id?: string;
                 /** @description Normalized audio output lane; omitted means all lanes. */
                 output_id?: string;
+                /** @description Firing or request correlation identifier. */
                 correlation_id?: string;
-                status?: "played" | "failed" | "pending" | "published";
+                status?: "played" | "failed" | "pending" | "published" | "received" | "started";
             };
             header?: never;
             path?: never;

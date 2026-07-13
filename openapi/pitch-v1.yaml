@@ -667,6 +667,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 500
+            default: 100
       responses:
         "200":
           description: Correlated delivery events, including deviceId, outputId, msgId, type, detail, and timestamp.
@@ -718,12 +719,19 @@ paths:
         - logs:read
       x-pitch-idempotency: none
       summary: List announcement delivery timelines
-      description: Returns customer-scoped proof-of-play delivery timelines, newest first.
+      description: >-
+        Returns customer-scoped proof-of-play delivery timelines ordered newest
+        first. Raw delivery history is queryable for up to seven days; older
+        rows are deleted.
       tags:
         - Logs
       parameters:
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Cursor"
+        - name: announcement_id
+          in: query
+          schema:
+            type: string
         - name: device_id
           in: query
           schema:
@@ -735,6 +743,7 @@ paths:
             type: string
         - name: correlation_id
           in: query
+          description: Firing or request correlation identifier.
           schema:
             type: string
         - name: status
@@ -746,6 +755,8 @@ paths:
               - failed
               - pending
               - published
+              - received
+              - started
       responses:
         "200":
           description: Delivery timelines.
@@ -3642,7 +3653,6 @@ components:
             type: string
           example:
             - play.completed
-            - device.offline
     WebhookListResponse:
       type: object
       required:
@@ -3665,6 +3675,7 @@ components:
           type: integer
         cursor:
           type: string
+          description: Opaque next-page cursor; an empty or omitted value means there is no next page.
     DeliveryTimeline:
       type: object
       required:
@@ -3690,6 +3701,11 @@ components:
             - failed
             - pending
             - published
+            - received
+            - started
+        failureReason:
+          type: string
+          description: Customer-visible, product-neutral diagnostic text for a failed delivery; values are human-readable and are not a stable enum.
         events:
           type: array
           items:

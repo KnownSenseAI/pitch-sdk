@@ -55,6 +55,53 @@ describe("PitchClient", () => {
     expect(String(fetch.mock.calls[0]![0])).toBe("http://localhost:8080/v1/target-bindings/fleet%20source/bus%2F12");
   });
 
+  it("serializes typed delivery list queries", async () => {
+    const { client, fetch } = setup();
+    await client.deliveries.list({
+      announcement_id: "announcement-1",
+      device_id: "device-1",
+      output_id: "platform-left",
+      correlation_id: "correlation-1",
+      status: "received",
+      limit: 25,
+      cursor: "cursor-1",
+    });
+
+    const url = new URL(String(fetch.mock.calls[0]![0]));
+    expect(url.pathname).toBe("/v1/logs/deliveries");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      announcement_id: "announcement-1",
+      device_id: "device-1",
+      output_id: "platform-left",
+      correlation_id: "correlation-1",
+      status: "received",
+      limit: "25",
+      cursor: "cursor-1",
+    });
+  });
+
+  it("serializes delivery trace limits without changing request options", async () => {
+    const { client, fetch } = setup();
+    const controller = new AbortController();
+    await client.deliveries.getTrace("corr/1", {
+      limit: 200,
+      correlationId: "request-1",
+      signal: controller.signal,
+    });
+
+    const url = new URL(String(fetch.mock.calls[0]![0]));
+    const init = fetch.mock.calls[0]![1];
+    expect(url.pathname).toBe("/v1/logs/deliveries/trace/corr%2F1");
+    expect(url.searchParams.get("limit")).toBe("200");
+    expect(new Headers(init?.headers).get("X-Correlation-ID")).toBe("request-1");
+    expect(init?.signal).toBe(controller.signal);
+
+    const compatibility = setup();
+    await compatibility.client.deliveries.getTrace("c1", { correlationId: "request-2" });
+    const compatibilityUrl = new URL(String(compatibility.fetch.mock.calls[0]![0]));
+    expect(compatibilityUrl.searchParams.has("limit")).toBe(false);
+  });
+
   it("forwards caller correlation IDs and abort signals", async () => {
     const { client, fetch } = setup();
     const controller = new AbortController();
