@@ -85,6 +85,8 @@ const announcement = await pitch.announcements.create({
 
 Creation produces a draft. Review the sequence, preview, target capabilities, and any decision warnings before calling `pitch.announcements.activate(announcement.id)`.
 
+Activation does not return the correlation IDs of future firings. [Discover each firing](/guides/delivery-monitoring) by listing delivery timelines with `announcement_id`, then use the row's `correlationId` for a selected trace.
+
 ## Restrictions and operational guidance
 
 - A chain contains between 1 and 32 items.

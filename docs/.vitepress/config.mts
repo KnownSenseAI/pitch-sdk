@@ -32,6 +32,8 @@ export default defineConfig({
           { text: "Scheduled announcements", link: "/guides/scheduled-announcements" },
           { text: "Repetitive announcements", link: "/guides/repetitive-announcements" },
           { text: "Chained announcements", link: "/guides/chained-announcements" },
+          { text: "Delivery monitoring", link: "/guides/delivery-monitoring" },
+          { text: "Data retention", link: "/guides/data-retention" },
           { text: "Business events", link: "/guides/business-events" },
           { text: "Output controls", link: "/guides/output-controls" },
           { text: "Webhooks", link: "/guides/webhooks" },

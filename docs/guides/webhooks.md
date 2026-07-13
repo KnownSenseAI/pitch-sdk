@@ -12,7 +12,7 @@ const admin = new PitchClient({
 
 const { webhook, secret } = await admin.webhooks.create({
   url: "https://partner.example.com/webhooks/pitch",
-  events: ["play.completed", "device.offline"],
+  events: ["play.completed"],
 });
 
 // Store `secret` now; it is returned only at creation or rotation.
@@ -35,3 +35,7 @@ if (!valid) return response.writeHead(401).end();
 ```
 
 Return a success response quickly after durable acceptance. Process longer work asynchronously, make your handler idempotent, and rotate a secret immediately if it may have been exposed.
+
+`play.completed` is terminal-only: it can report successful playback or a terminal failure, so inspect the payload status. It is not emitted for the intermediate `received` or `started` states. Use [delivery monitoring](/guides/delivery-monitoring) for in-progress polling and for reconciliation after delayed, duplicate, or missed webhook delivery.
+
+Webhook delivery attempts remain queryable for up to seven days. See [Data retention](/guides/data-retention) and persist only the compact business results needed for longer.

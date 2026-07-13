@@ -17,3 +17,5 @@ console.log(operation.control_id, operation.status);
 Always provide a human-readable reason and a stable idempotency key. `output_id` is required for `scope: "output"`; it does not default to `main` for control requests.
 
 For zones, preflight first and carry the returned zone version and target count into the later operation. Controls are atomic: do not assume partial execution is allowed.
+
+Output-control operation history remains queryable for up to seven days. Persist compact business records needed for longer and review the other [data-retention windows](/guides/data-retention).

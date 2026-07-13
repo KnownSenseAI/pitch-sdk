@@ -17,7 +17,8 @@ All client examples require `PITCH_BASE_URL` and `PITCH_API_KEY`.
 | [Business event](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/bus-event.ts) | None | Publish application-owned business metadata without location ingestion. |
 | [Output control](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/output-control.ts) | `PITCH_DEVICE_ID`; optional `PITCH_OUTPUT_ID` | Apply an audited volume change to one output. |
 | [Zone preflight](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/zone-control-preflight.ts) | `PITCH_ZONE_ID` | Lock a zone operation to a reviewed version and target count. |
-| [Delivery monitoring](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/delivery-monitoring.ts) | `PITCH_CORRELATION_ID` | Read the ordered delivery lifecycle for a request. |
+| [Delivery monitoring](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/delivery-monitoring.ts) | `PITCH_CORRELATION_ID` | Find delivery summaries for one correlation, then read its ordered diagnostic trace. |
+| [Delivery timelines](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/delivery-timelines.ts) | `PITCH_ANNOUNCEMENT_ID` | Paginate recent firing summaries for a scheduled announcement without tracing every row. |
 | [Webhook receiver](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/webhook-server.ts) | `PITCH_WEBHOOK_SECRET`; optional `PORT` | Verify raw request bytes before parsing an event. |
 
 The shared helper in [`examples/_shared.ts`](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/_shared.ts) validates environment variables and shows structured `PitchAPIError` handling. Copy the parts appropriate to your application's configuration and logging conventions.

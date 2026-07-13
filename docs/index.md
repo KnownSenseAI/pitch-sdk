@@ -31,6 +31,8 @@ features:
 - Play several assets in order with a [chained announcement](/guides/chained-announcements).
 - Turn an application signal into a [business event](/guides/business-events).
 - Apply an audited [output control](/guides/output-controls).
+- Confirm playback with [delivery summaries and traces](/guides/delivery-monitoring).
 - Receive signed status updates through [webhooks](/guides/webhooks).
+- Understand the platform's [short data-retention windows](/guides/data-retention).
 
 The SDK targets Node.js 22 or newer and uses the current `X-Pitch-*` headers. PITCH retains temporary server-side support for legacy `X-SmartPA-*` headers used by already-deployed devices and integrations.

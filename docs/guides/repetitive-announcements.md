@@ -86,6 +86,8 @@ console.log(announcement.id, announcement.status);
 
 Creation produces a draft. Review the preview and any decision warnings before calling `pitch.announcements.activate(announcement.id)`. If activation returns a warning confirmation token, show the warning to an authorized user before retrying with that token.
 
+Activation does not return the correlation IDs of future firings. [Discover each firing](/guides/delivery-monitoring) by listing delivery timelines with `announcement_id`, then use the row's `correlationId` for a selected trace.
+
 ## Restrictions and operational guidance
 
 - Set exactly one of `interval_mins` and `occurrences_per_window`.

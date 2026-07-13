@@ -29,4 +29,6 @@ After reviewing the result, create the durable announcement definition with `pit
 
 Manage existing schedules through `pitch.schedules`: list, update, pause, resume, or delete. Update operations support whole-schedule and occurrence-scoped edits where documented by the API.
 
+Creation does not return the correlation IDs of future firings. To [monitor delivery](/guides/delivery-monitoring), query recent timelines by `announcement_id`, then use a firing row's `correlationId` to inspect its trace.
+
 Use a [repetitive announcement](/guides/repetitive-announcements) for interval- or count-based playback inside a daily window. Use a [chained announcement](/guides/chained-announcements) when several audio-library assets must play in order from one weekly schedule slot.

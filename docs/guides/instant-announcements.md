@@ -9,6 +9,8 @@ Use an instant announcement when audio should be queued immediately for a device
 3. Submit a customer-owned [audio-library asset](/guides/audio-library-and-tts) with a stable idempotency key.
 4. Persist the returned correlation ID for delivery monitoring.
 
+Use that ID to [list delivery status and inspect a selected trace](/guides/delivery-monitoring).
+
 ```ts
 const target = { device_id: "device-123", output_id: "main" };
 
