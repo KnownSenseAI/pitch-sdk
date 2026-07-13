@@ -1,0 +1,10 @@
+{
+  "timestamp": 1893456000,
+  "body": "{\"event\":\"play.completed\",\"id\":\"fixture-1\"}",
+  "key": "fixture-secret",
+  "headers": {
+    "X-SmartPA-Signature-Version": "v1",
+    "X-SmartPA-Timestamp": "1893456000",
+    "X-SmartPA-Signature": "sha256=6993ac850a1bbf772cae47f1b619c8eac4693c3a4b300744382b49c556d611a9"
+  }
+}

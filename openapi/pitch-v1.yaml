@@ -1,0 +1,3839 @@
+openapi: 3.0.3
+info:
+  title: PITCH Partner API
+  version: 1.0.0
+  description: Stable additive-only PITCH Partner API v1 contract. New integrations use X-Pitch-* HTTP headers; legacy X-SmartPA-* aliases remain accepted or emitted during the compatibility window. Breaking request, response, or security changes require a new API version.
+servers:
+  - url: https://pitch.knownsense.ai
+    description: Production
+security:
+  - bearerAuth: []
+  - apiKeyAuth: []
+paths:
+  /v1/devices:
+    get:
+      operationId: listDevices
+      x-pitch-partner: true
+      x-pitch-scope:
+        - devices:read
+      x-pitch-idempotency: none
+      summary: List tenant devices and authoritative audio outputs
+      description: Requires JWT role or API key scope devices:read. Results are cursor paginated and may be filtered by status, group_id, and search.
+      tags:
+        - Devices
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - online
+              - offline
+              - playing
+        - name: group_id
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: output_id
+          in: query
+          schema:
+            type: string
+          description: Keep devices exposing this normalized output slot.
+        - name: output_available
+          in: query
+          schema:
+            type: boolean
+          description: Keep devices with a matching currently available output.
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        "200":
+          description: Tenant device page.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - devices
+                  - total
+                  - cursor
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+                  total:
+                    type: integer
+                  cursor:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/targets/preflight:
+    post:
+      operationId: preflightTargets
+      x-pitch-partner: true
+      x-pitch-scope:
+        - devices:read
+      x-pitch-idempotency: none
+      summary: Check target structure, readiness, freshness, and concurrency facts
+      description: Side-effect-free; it never reserves a playback claim. Requires devices:read. A syntactically valid blocked request returns 200 with allowed false.
+      tags:
+        - Devices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TargetPreflightRequest"
+      responses:
+        "200":
+          description: Per-target preflight decision.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetPreflightResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/zones:
+    get:
+      operationId: listOutputZones
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:read
+      x-pitch-idempotency: none
+      summary: List tenant output zones
+      description: Requires zones:read. Members are stable-sorted explicit device/output pairs.
+      tags:
+        - Zones
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Zone page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputZoneList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    post:
+      operationId: createOutputZone
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:write
+      x-pitch-idempotency: none
+      summary: Create a versioned output zone
+      description: Requires zones:write. Every member must explicitly include output_id.
+      tags:
+        - Zones
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOutputZoneRequest"
+      responses:
+        "201":
+          description: Created zone
+          headers:
+            ETag:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputZone"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Active name conflict.
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/zones/{zoneId}:
+    get:
+      operationId: getOutputZone
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:read
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      responses:
+        "200":
+          description: Zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputZone"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Zone not found.
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    patch:
+      operationId: updateOutputZone
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:write
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOutputZoneRequest"
+      responses:
+        "200":
+          description: Updated zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputZone"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "412":
+          description: Version conflict.
+        "428":
+          description: If-Match required.
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    delete:
+      operationId: deleteOutputZone
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:write
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Zone soft-deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Zone is in use.
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/zones/{zoneId}/members:
+    put:
+      operationId: replaceOutputZoneMembers
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:write
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      parameters:
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - members
+              properties:
+                members:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items:
+                    $ref: "#/components/schemas/OutputZoneMember"
+      responses:
+        "200":
+          description: Updated zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputZone"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "412":
+          description: Version conflict.
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/zones/{zoneId}/preflight:
+    post:
+      operationId: preflightOutputZone
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:read
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      parameters:
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OutputZonePreflightRequest"
+      responses:
+        "200":
+          description: Side-effect-free readiness receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputZonePreflightResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/target-bindings/{namespace}/{externalId}:
+    put:
+      operationId: putTargetBinding
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:write
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - zone_id
+              properties:
+                zone_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Binding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetBinding"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    get:
+      operationId: getTargetBinding
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:read
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      responses:
+        "200":
+          description: Binding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetBinding"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Not found.
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    delete:
+      operationId: deleteTargetBinding
+      x-pitch-partner: true
+      x-pitch-scope:
+        - zones:write
+      x-pitch-idempotency: none
+      tags:
+        - Zones
+      responses:
+        "204":
+          description: Binding soft-deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/logs/deliveries/trace/{correlationId}:
+    get:
+      operationId: getDeliveryTrace
+      x-pitch-partner: true
+      x-pitch-scope:
+        - logs:read
+      x-pitch-idempotency: none
+      summary: Get output-aware delivery lifecycle trace
+      description: Requires logs:read and returns routed, received, started, terminal, failure, and replay events in time order.
+      tags:
+        - Logs
+      parameters:
+        - name: correlationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        "200":
+          description: Correlated delivery events, including deviceId, outputId, msgId, type, detail, and timestamp.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/devices/{deviceId}:
+    get:
+      operationId: getDevice
+      x-pitch-partner: true
+      x-pitch-scope:
+        - devices:read
+      x-pitch-idempotency: none
+      summary: Get device
+      description: Returns one tenant-scoped device snapshot from the durable registry.
+      tags:
+        - Devices
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Device found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/logs/deliveries:
+    get:
+      operationId: listDeliveryLogs
+      x-pitch-partner: true
+      x-pitch-scope:
+        - logs:read
+      x-pitch-idempotency: none
+      summary: List announcement delivery timelines
+      description: Returns tenant-scoped proof-of-play delivery timelines, newest first.
+      tags:
+        - Logs
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+        - name: device_id
+          in: query
+          schema:
+            type: string
+        - name: output_id
+          in: query
+          description: Normalized audio output lane; omitted means all lanes.
+          schema:
+            type: string
+        - name: correlation_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - played
+              - failed
+              - pending
+              - published
+      responses:
+        "200":
+          description: Delivery timelines.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryTimelineListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/webhooks:
+    get:
+      operationId: listWebhooks
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: List webhooks
+      description: Lists tenant-owned webhook endpoints. Requires a PITCH JWT for an owner or admin; partner API keys cannot manage webhook configuration.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Tenant webhooks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createWebhook
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Create webhook
+      description: Creates a tenant-owned webhook endpoint for an owner or admin and returns the signing secret once. Production URLs must use public HTTPS.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWebhookRequest"
+      responses:
+        "201":
+          description: Webhook created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateWebhookResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/events:
+    post:
+      operationId: publishEvent
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: required
+      summary: Publish a partner business event
+      description: Publishes a meaningful business event for event-driven announcements. Partners should convert GPS or sensor streams into business events before calling this API; PITCH does not accept raw GPS traces here.
+      tags:
+        - Events
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Client-generated idempotency key for safely retrying event publication. SDKs should use event_id when supplied.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerEventPublishRequest"
+            examples:
+              busStopApproaching:
+                summary: Bus approaching a stop
+                value:
+                  event_type: bus.stop.approaching
+                  event_id: bus-R12-MG_ROAD-20260710T083000Z
+                  occurred_at: 2026-07-10T08:30:00Z
+                  data:
+                    route_id: R12
+                    stop_id: MG_ROAD
+                    direction: northbound
+                  interrupt_active: false
+      responses:
+        "200":
+          description: Event processed for matching announcements.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerEventPublishResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/event-occurrences:
+    get:
+      operationId: listEventOccurrences
+      x-pitch-partner: true
+      x-pitch-scope:
+        - logs:read
+      x-pitch-idempotency: none
+      summary: List durable partner event occurrences
+      description: Returns tenant-scoped event outcomes. Raw GPS traces are not accepted or returned.
+      tags:
+        - Events
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: event_type
+          in: query
+          schema:
+            type: string
+        - name: event_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Durable event occurrences.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - occurrences
+                properties:
+                  occurrences:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PartnerEventOccurrence"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/event-occurrences/{occurrenceId}:
+    get:
+      operationId: getEventOccurrence
+      x-pitch-partner: true
+      x-pitch-scope:
+        - logs:read
+      x-pitch-idempotency: none
+      summary: Get a durable partner event occurrence
+      tags:
+        - Events
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: occurrenceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Durable event occurrence and per-output targets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerEventOccurrence"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/webhooks/ingest:
+    post:
+      operationId: ingestLegacyWebhookEvent
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: optional
+      deprecated: true
+      summary: Ingest legacy partner event
+      description: Legacy alias for partner event ingestion. New integrations should use POST /v1/events with event_type.
+      tags:
+        - Events
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+            minLength: 1
+          description: Client-generated idempotency key for safely retrying legacy event ingestion. Omitting it is supported for compatibility but is unsafe to replay.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LegacyIngestEventRequest"
+      responses:
+        "200":
+          description: Legacy event ingested.
+          headers:
+            X-Pitch-Deprecated:
+              schema:
+                type: string
+              description: Identifies the supported replacement, POST /v1/events.
+            X-SmartPA-Deprecated:
+              schema:
+                type: string
+              deprecated: true
+              description: Legacy alias for X-Pitch-Deprecated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegacyIngestEventResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/webhooks/{id}:
+    patch:
+      operationId: updateWebhook
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Update webhook
+      description: Updates webhook URL or subscribed event types. Requires an owner or admin PITCH JWT.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWebhookRequest"
+      responses:
+        "200":
+          description: Webhook updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Webhook"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteWebhook
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Delete webhook
+      description: Soft-deletes a tenant-owned webhook endpoint. Requires an owner or admin PITCH JWT.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Webhook deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/webhooks/{id}/deliveries:
+    get:
+      operationId: listWebhookDeliveries
+      x-pitch-partner: true
+      x-pitch-scope:
+        - logs:read
+      x-pitch-idempotency: none
+      summary: List webhook deliveries
+      description: Lists delivery attempts for one webhook. Console users can read this with PITCH JWT auth; partner API keys need logs:read.
+      tags:
+        - Webhooks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Webhook delivery attempts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookDeliveriesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/webhooks/{id}/rotate-secret:
+    post:
+      operationId: rotateWebhookSecret
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Rotate webhook signing secret
+      description: Owner/admin-only rotation. Returns the new secret once and switches signing immediately; there is no dual-secret grace period.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Secret rotated and returned once.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RotateWebhookSecretResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/webhooks/{id}/test:
+    post:
+      operationId: testWebhook
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Send a test webhook delivery
+      description: Owner/admin-only connectivity test. The stored signing secret and transport URL are never returned.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Test delivery result.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/schedules:
+    get:
+      operationId: listSchedules
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: List schedule manager rows
+      description: Returns cursor-paginated scheduled, repetitive, chained, and cron-backed dynamic announcements with bounded server-side fire-time previews. This lets the console render schedule views without polling each announcement individually.
+      tags:
+        - Schedules
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - scheduled
+              - repetitive
+              - chained
+              - dynamic
+        - name: status
+          in: query
+          schema:
+            type: string
+            default: active
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: preview_limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 3
+        - name: now
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Optional reference time for deterministic previews and tests. Defaults to server time.
+      responses:
+        "200":
+          description: Schedule manager rows.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/schedules/preview:
+    post:
+      operationId: previewSchedule
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Preview schedule trigger fire times
+      description: Validates scheduled, repetitive, and cron-backed dynamic trigger configs and returns a bounded list of upcoming fire times without creating an announcement.
+      tags:
+        - Schedules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchedulePreviewRequest"
+      responses:
+        "200":
+          description: Schedule preview.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchedulePreviewResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/schedules/{announcementId}:
+    patch:
+      operationId: updateSchedule
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Update a schedule definition
+      description: Updates trigger, content, targeting, and priority. Active durable retargets transactionally enqueue retained catalog sync for both removed and added devices. this_occurrence cannot retarget or reprioritize; this_and_following applies those changes only to the new split definition.
+      tags:
+        - Schedules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduleRequest"
+      responses:
+        "200":
+          description: Updated schedule row.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleListItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    delete:
+      operationId: deleteSchedule
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Delete a schedule
+      description: Schedule-friendly alias for deleting a schedule-managed announcement. Audio assets remain in the library; active durable schedules enqueue device schedule-sync so retained device schedules remove the entry.
+      tags:
+        - Schedules
+      responses:
+        "204":
+          description: Schedule deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/schedules/{announcementId}/status:
+    patch:
+      operationId: updateScheduleStatus
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Pause or resume a schedule
+      description: Schedule-safe status transition for active and paused schedule-managed announcements. Durable schedules enqueue retained device schedule-sync so devices apply pause/resume changes.
+      tags:
+        - Schedules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduleStatusRequest"
+      responses:
+        "200":
+          description: Updated schedule status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/announce:
+    post:
+      operationId: createInstantAnnouncement
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: required
+      summary: Queue an instant announcement
+      description: Queues an immediate announcement for one device target shape. The request accepts exactly one of device_id, device_ids, targets, or group_id; group_id is currently rejected by the backend with invalid_target. Missing output_id defaults to main. Non-main outputs require the device to report that output as enabled and ready. Independent playback describes cross-output overlap and is not required for single-output targeting.
+      tags:
+        - Announcements
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Client-generated idempotency key for safely retrying instant announcement creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstantAnnouncementRequest"
+      responses:
+        "202":
+          description: Instant announcement queued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstantAnnouncementResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/announcements:
+    get:
+      operationId: listAnnouncements
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: List announcements
+      description: Returns tenant-scoped announcements with optional status filtering and cursor pagination.
+      tags:
+        - Announcements
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Optional announcement status filter.
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+      responses:
+        "200":
+          description: Announcement list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnnouncementListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      operationId: createAnnouncement
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: required
+      summary: Create an announcement
+      description: Creates a durable announcement definition for supported trigger types.
+      tags:
+        - Announcements
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Client-generated idempotency key for safely retrying announcement creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementCreateRequest"
+            examples:
+              eventDrivenBusStopApproach:
+                summary: Create an announcement triggered by a bus business event
+                value:
+                  type: event_driven
+                  name: Route 12 stop approach
+                  targeting_config:
+                    type: device
+                    device_ids:
+                      - spa_bus_12
+                  content_config:
+                    type: asset
+                    asset_id: asset_stop_approach
+                  trigger_config:
+                    type: event_driven
+                    webhook_event: bus.stop.approaching
+                  priority: 2
+      responses:
+        "201":
+          description: Announcement created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/announcements/{announcementId}:
+    get:
+      operationId: getAnnouncement
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Get an announcement
+      description: Returns one tenant-scoped announcement by identifier.
+      tags:
+        - Announcements
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Announcement.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteAnnouncement
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Delete an announcement
+      description: Soft-deletes an announcement, removes it from the online scheduler when configured, and emits device schedule-sync events for explicit device targets.
+      tags:
+        - Announcements
+      responses:
+        "204":
+          description: Announcement deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          description: Schedule sync is unavailable for a schedule-capable announcement delete.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/announcements/{announcementId}/status:
+    patch:
+      operationId: updateAnnouncementStatus
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Update announcement status
+      description: Transitions an announcement to a new status. Transitioning to active runs the same activation decision checks used by the activate endpoint.
+      tags:
+        - Announcements
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementStatusRequest"
+      responses:
+        "200":
+          description: Announcement status updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                  decision:
+                    $ref: "#/components/schemas/DecisionPreviewSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/announcements/{announcementId}/activate:
+    post:
+      operationId: activateAnnouncement
+      x-pitch-partner: true
+      x-pitch-scope:
+        - announce:write
+      x-pitch-idempotency: none
+      summary: Activate an announcement
+      description: Activates a draft or pending-review announcement and schedules durable trigger types when scheduling dependencies are configured.
+      tags:
+        - Announcements
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementActivationRequest"
+      responses:
+        "200":
+          description: Announcement activated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - active
+                  decision:
+                    $ref: "#/components/schemas/DecisionPreviewSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/output-controls:
+    post:
+      operationId: createOutputControl
+      x-pitch-partner: true
+      x-pitch-scope:
+        - outputs:control
+      x-pitch-idempotency: required
+      summary: Create an acknowledged output safety operation
+      description: Requires outputs:control. Force, drain, all-output, and emergency playback additionally require emergency:write for API keys or an owner/admin user. Publication is nonterminal; inspect the operation until device ACK or playback proof completes it.
+      tags:
+        - Output Controls
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 128
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOutputControlRequest"
+      responses:
+        "202":
+          description: Accepted and published, but not necessarily acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputControlOperation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Idempotency
+          target freshness: null
+          or control-state conflict.: null
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      operationId: listOutputControls
+      x-pitch-partner: true
+      x-pitch-scope:
+        - outputs:control
+      x-pitch-idempotency: none
+      summary: List tenant output controls
+      tags:
+        - Output Controls
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Tenant-scoped controls and target results.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputControlList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/output-controls/{controlId}:
+    get:
+      operationId: getOutputControl
+      x-pitch-partner: true
+      x-pitch-scope:
+        - outputs:control
+      x-pitch-idempotency: none
+      summary: Get an output control and all snapshotted target results
+      tags:
+        - Output Controls
+      parameters:
+        - name: controlId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Output control detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutputControlOperation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+components:
+  responses:
+    RateLimited:
+      description: The authenticated tenant or client IP exceeded its configured per-minute quota.
+      headers:
+        Retry-After:
+          description: Seconds until the current minute bucket resets.
+          schema:
+            type: integer
+            minimum: 1
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Authenticated principal is not allowed to access the resource.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailable:
+      description: Required dependency is unavailable or not configured.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Resource state conflicts with the requested operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UnprocessableEntity:
+      description: Request syntax is valid, but the requested occurrence-scoped edit is unsupported.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: unauthorized
+            message:
+              type: string
+              example: missing tenant context
+            details:
+              type: object
+              additionalProperties: true
+              description: Optional machine-readable details for field-level or input-specific errors.
+              example:
+                validation_issues:
+                  - code: unsupported_tts_symbol
+                    severity: warning
+                    message: Emoji, decorative symbols, and formatting marks are removed before speech because they cannot be read naturally.
+                    text: 🎉
+    OutputControlOperation:
+      type: object
+      required:
+        - control_id
+        - action
+        - scope
+        - reason
+        - status
+        - correlation_id
+        - expires_at
+        - actor
+        - accepted_at
+        - created_at
+        - updated_at
+        - results
+      properties:
+        control_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum:
+            - stop
+            - set_volume
+            - set_mute
+            - emergency_play
+        scope:
+          type: string
+          enum:
+            - output
+            - all_outputs
+            - zone
+        reason:
+          type: string
+        status:
+          type: string
+          enum:
+            - accepted
+            - published
+            - acknowledged
+            - completed
+            - partially_completed
+            - rejected
+            - failed
+            - expired
+        correlation_id:
+          type: string
+        asset_id:
+          type: string
+        priority:
+          type: integer
+          enum:
+            - 3
+        expires_at:
+          type: string
+          format: date-time
+        actor:
+          type: object
+          required:
+            - type
+            - id
+          properties:
+            type:
+              type: string
+              enum:
+                - user
+                - api_key
+            id:
+              type: string
+        announcement_id:
+          type: string
+        dispatch_status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - dispatched
+            - failed
+          description: Durable emergency dispatch state; omitted for non-emergency controls.
+        dispatch_failure_code:
+          type: string
+          enum:
+            - invalid_asset
+            - invalid_target
+            - materialization_unavailable
+            - materialization_failed
+            - attempt_budget_exhausted
+          description: Stable, non-sensitive terminal or retry failure code.
+        last_error:
+          type: string
+        accepted_at:
+          type: string
+          format: date-time
+        published_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputControlResult"
+        zone_id:
+          type: string
+          format: uuid
+        zone_version:
+          type: integer
+          format: int64
+        target_hash:
+          type: string
+        expected_target_count:
+          type: integer
+    OutputControlResult:
+      type: object
+      required:
+        - control_id
+        - device_id
+        - output_id
+        - command_message_id
+        - status
+        - created_at
+        - updated_at
+      properties:
+        control_id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+        output_id:
+          type: string
+        expected_message_id:
+          type: string
+        command_message_id:
+          type: string
+        desired_version:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+            - accepted
+            - published
+            - acknowledged
+            - completed
+            - noop
+            - rejected
+            - failed
+            - expired
+        applied_volume:
+          type: integer
+          minimum: 0
+          maximum: 100
+        applied_mute:
+          type: boolean
+        stopped_message_id:
+          type: string
+        reason:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        proof_at:
+          type: string
+          format: date-time
+        announcement_id:
+          type: string
+        message_id:
+          type: string
+        decision_id:
+          type: string
+          description: Canonical existing decision_executions execution ID for the emergency playback proof.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OutputControlList:
+      type: object
+      required:
+        - operations
+      properties:
+        operations:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputControlOperation"
+        cursor:
+          type: string
+    CreateOutputControlRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - action
+        - scope
+        - target
+        - parameters
+        - reason
+      properties:
+        action:
+          type: string
+          enum:
+            - stop
+            - set_volume
+            - set_mute
+            - emergency_play
+        scope:
+          type: string
+          enum:
+            - output
+            - all_outputs
+            - zone
+        target:
+          type: object
+          additionalProperties: false
+          required:
+            - device_id
+          properties:
+            device_id:
+              type: string
+              minLength: 1
+            output_id:
+              type: string
+              pattern: ^[a-z0-9][a-z0-9_-]{0,23}$
+          description: output_id is required for scope=output and forbidden for scope=all_outputs; it never defaults to main.
+        parameters:
+          type: object
+          additionalProperties: false
+          properties:
+            expected_message_id:
+              type: string
+            force_current:
+              type: boolean
+              default: false
+            drain_queue:
+              type: boolean
+              default: false
+            volume:
+              type: integer
+              minimum: 0
+              maximum: 100
+            mute:
+              type: boolean
+            asset_id:
+              type: string
+              description: Tenant-owned immutable audio asset; arbitrary URLs are forbidden.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 240
+        zone_id:
+          type: string
+          format: uuid
+        expected_zone_version:
+          type: integer
+          format: int64
+        expected_target_count:
+          type: integer
+          minimum: 1
+          maximum: 100
+    DecisionPreviewSummary:
+      type: object
+      required:
+        - result
+      properties:
+        decision_id:
+          type: string
+          description: Persisted preview decision ID when decision recording is configured.
+        result:
+          type: string
+          enum:
+            - accepted
+            - accepted_with_warnings
+            - rejected
+        reasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecisionReason"
+        warning_confirmation:
+          $ref: "#/components/schemas/WarningConfirmation"
+    WarningConfirmation:
+      type: object
+      required:
+        - required
+        - acknowledged
+      properties:
+        required:
+          type: boolean
+          description: True when this warning plan must be acknowledged before commit side effects proceed.
+        token:
+          type: string
+          description: Echo this value as warning_confirmation_token on the follow-up commit request.
+        acknowledged:
+          type: boolean
+          description: True when the supplied token matched the current warning plan.
+    DecisionReason:
+      type: object
+      required:
+        - policy
+        - code
+        - severity
+        - message
+      properties:
+        policy:
+          type: string
+          example: schedule_analysis
+        code:
+          type: string
+          example: exact_duplicate
+        severity:
+          type: string
+          enum:
+            - info
+            - warning
+            - error
+        message:
+          type: string
+    AnnouncementActivationRequest:
+      type: object
+      properties:
+        warning_confirmation_token:
+          type: string
+          description: Token returned by a rejected accepted-with-warnings activation decision; required to retry with warning acknowledgment.
+    AnnouncementStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - draft
+            - pending_review
+            - active
+            - paused
+            - completed
+            - expired
+            - failed
+            - rejected
+        reason:
+          type: string
+        warning_confirmation_token:
+          type: string
+          description: Token returned by a rejected accepted-with-warnings activation decision when status is active.
+    Announcement:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - name
+        - type
+        - status
+        - content_config
+        - priority
+        - correlation_id
+        - status_history
+        - created_at
+        - updated_at
+        - version
+        - created_by
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - pending_review
+            - active
+            - paused
+            - completed
+            - expired
+            - failed
+            - rejected
+        content_config:
+          type: object
+          additionalProperties: true
+        trigger_config:
+          $ref: "#/components/schemas/TriggerConfig"
+        targeting_config:
+          type: object
+          additionalProperties: true
+        device_id:
+          type: string
+        group_id:
+          type: string
+        priority:
+          type: integer
+        correlation_id:
+          type: string
+        status_history:
+          type: array
+          items:
+            type: object
+            required:
+              - from
+              - to
+              - at
+            properties:
+              from:
+                type: string
+              to:
+                type: string
+              at:
+                type: string
+                format: date-time
+              reason:
+                type: string
+              changed_by:
+                type: string
+        starts_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+        created_by:
+          type: string
+        decision:
+          $ref: "#/components/schemas/DecisionPreviewSummary"
+    TriggerConfig:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - instant
+            - scheduled
+            - repetitive
+            - event_driven
+            - geo_triggered
+            - sensor_triggered
+            - chained
+            - conditional
+            - dynamic
+            - subscription
+            - interactive
+        cron_expr:
+          type: string
+          example: 0 9 * * 1-5
+        timezone:
+          type: string
+          example: Asia/Kolkata
+        mode:
+          type: string
+          enum:
+            - weekly
+            - once
+          default: weekly
+          description: Scheduled trigger mode. Omit or use weekly for cron schedules; use once with fire_at for one-time schedules.
+        fire_at:
+          type: string
+          format: date-time
+          description: One-time scheduled fire timestamp. Required when mode is once.
+        max_firings:
+          type: integer
+          minimum: 1
+          maximum: 1
+          description: One-time schedules use max_firings=1.
+        fired_count:
+          type: integer
+          minimum: 0
+          description: Number of completed one-time firings reported by the schedule lifecycle.
+        interval_mins:
+          type: integer
+          minimum: 1
+          description: Repetitive interval mode. Exactly one of interval_mins or occurrences_per_window is required for repetitive schedules.
+        occurrences_per_window:
+          type: integer
+          minimum: 1
+          description: Repetitive count mode. Generates this many minute-aligned starts inside each window when audio duration fits.
+        window_start:
+          type: string
+          example: 09:00
+        window_end:
+          type: string
+          example: 18:00
+        webhook_event:
+          type: string
+          minLength: 1
+          description: Partner business-event selector. Required when type is event_driven.
+          example: bus.stop.approaching
+        conditions:
+          type: array
+          description: Legacy flat conditional rule; every condition must match.
+          items:
+            $ref: "#/components/schemas/RuleCondition"
+        rule:
+          $ref: "#/components/schemas/Rule"
+    Rule:
+      type: object
+      description: Bounded conditional rule tree. Evaluation is local only; no scripts, regex, or network calls.
+      properties:
+        mode:
+          type: string
+          enum:
+            - all
+            - any
+          default: all
+        conditions:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/RuleCondition"
+        groups:
+          type: array
+          description: Nested rule groups. Backend evaluation currently caps depth at 5.
+          items:
+            $ref: "#/components/schemas/Rule"
+    RuleCondition:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          example: crowd_level
+        operator:
+          type: string
+          enum:
+            - eq
+            - ne
+            - gt
+            - lt
+            - gte
+            - lte
+            - contains
+        value:
+          type: string
+          maxLength: 512
+          example: high
+    AnnouncementCreateRequest:
+      type: object
+      required:
+        - type
+        - content_config
+      properties:
+        name:
+          type: string
+          description: Customer-facing announcement name. Empty or whitespace-only names are replaced with a readable generated fallback.
+        type:
+          type: string
+          enum:
+            - instant
+            - scheduled
+            - repetitive
+            - conditional
+            - event_driven
+            - chained
+          description: Create-supported announcement types in the current backend. event_driven requires trigger_config.type=event_driven and trigger_config.webhook_event.
+        targeting_config:
+          type: object
+          additionalProperties: true
+          description: Optional structured targeting config.
+        device_id:
+          type: string
+          description: Explicit device target shortcut. When output_id is omitted, this targets the main audio output slot.
+        output_id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9_-]{0,23}$
+          default: main
+          description: Audio output slot for device_id schedules. Non-main values require a matching reported output that is enabled and ready; unavailable outputs return invalid_target.
+        targets:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OutputTarget"
+          description: Explicit device/output targets for scheduled, repetitive, conditional, or chained announcements. Group/all targeting remains main-only unless product defines all-output semantics.
+        group_id:
+          type: string
+          description: Explicit group target shortcut.
+        content_config:
+          type: object
+          additionalProperties: true
+          description: Announcement content config, such as URL, asset, TTS, or chained content. event_driven requires durable playable content; prefer asset_id, and include checksum for URL content. Temporary TTS is not supported.
+        trigger_config:
+          $ref: "#/components/schemas/TriggerConfig"
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 3
+        starts_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        warning_confirmation_token:
+          type: string
+          description: Token returned by a rejected accepted-with-warnings decision; required to retry with warning acknowledgment.
+    OutputTarget:
+      type: object
+      description: Playback target for one audio output on a physical device. output_id defaults to main when omitted. Non-main outputs require a matching reported output that is enabled and ready.
+      required:
+        - device_id
+      properties:
+        device_id:
+          type: string
+          description: Physical device identifier.
+        output_id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9_-]{0,23}$
+          default: main
+          description: Audio output slot identifier. Omit or use main for legacy single-output behavior.
+    AnnouncementListResponse:
+      type: object
+      required:
+        - announcements
+        - total
+      properties:
+        announcements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Announcement"
+        total:
+          type: integer
+        cursor:
+          type: string
+    InstantAnnouncementResponse:
+      type: object
+      required:
+        - correlation_id
+        - status
+      properties:
+        announcement_id:
+          type: string
+          description: Created announcement id for a single-device instant request.
+        group_delivery_id:
+          type: string
+          description: Batch delivery id for multi-device instant requests.
+        correlation_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - queued
+        total:
+          type: integer
+          description: Number of target results for multi-device instant requests.
+        targets:
+          type: array
+          items:
+            type: object
+            required:
+              - announcement_id
+              - device_id
+              - correlation_id
+              - status
+            properties:
+              announcement_id:
+                type: string
+              device_id:
+                type: string
+              output_id:
+                type: string
+                description: Present for non-main output targets.
+              correlation_id:
+                type: string
+              status:
+                type: string
+                enum:
+                  - queued
+        decision:
+          $ref: "#/components/schemas/DecisionPreviewSummary"
+    InstantAnnouncementRequest:
+      type: object
+      description: Exactly one of device_id, device_ids, targets, or group_id is accepted by request shape. The backend currently returns invalid_target for group_id because group delivery requires per-device expansion. Missing output_id defaults to main.
+      oneOf:
+        - required:
+            - device_id
+        - required:
+            - device_ids
+        - required:
+            - targets
+        - required:
+            - group_id
+      anyOf:
+        - required:
+            - audio_url
+        - required:
+            - asset_id
+      properties:
+        name:
+          type: string
+        device_id:
+          type: string
+          description: Single target device identifier. When output_id is omitted, this targets the main audio output slot.
+        output_id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9_-]{0,23}$
+          default: main
+          description: Audio output slot for device_id. Non-main values require the device to report that output as enabled and ready.
+        device_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: Multiple target device identifiers. The backend creates one instant delivery per device.
+        targets:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OutputTarget"
+          description: Explicit device/output targets for mixed main and aux batch delivery. device_ids may only be combined with targets when both normalize to the same target set.
+        group_id:
+          type: string
+          description: Group target identifier accepted by request shape but currently rejected by the handler with invalid_target.
+        zone_id:
+          type: string
+          format: uuid
+          description: Versioned output zone resolved once and transactionally enqueued as explicit per-output deliveries.
+        expected_zone_version:
+          type: integer
+          format: int64
+        expected_target_count:
+          type: integer
+          minimum: 1
+          maximum: 500
+        audio_url:
+          type: string
+          format: uri
+          description: Direct audio URL. Required when asset_id is omitted.
+        asset_id:
+          type: string
+          description: Audio library asset identifier. Required when audio_url is omitted.
+        checksum:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 3
+        interrupt_active:
+          type: boolean
+          default: true
+          description: When true or omitted, a higher-priority instant announcement may interrupt active playback.
+    ScheduleStatusResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+        decision:
+          $ref: "#/components/schemas/DecisionPreviewSummary"
+    UpdateScheduleStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+        reason:
+          type: string
+        warning_confirmation_token:
+          type: string
+          description: Token returned by a rejected accepted-with-warnings decision when resuming a schedule.
+    ScheduleListItem:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - status
+        - content_config
+        - priority
+        - timezone
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          maxLength: 60
+        type:
+          type: string
+          enum:
+            - scheduled
+            - repetitive
+            - chained
+            - dynamic
+        status:
+          type: string
+        content_config:
+          type: object
+          additionalProperties: true
+        trigger_config:
+          $ref: "#/components/schemas/TriggerConfig"
+        targeting_config:
+          type: object
+          additionalProperties: true
+        device_id:
+          type: string
+        group_id:
+          type: string
+        priority:
+          type: integer
+        timezone:
+          type: string
+          description: IANA timezone used to display preview fire times for this schedule.
+          example: Asia/Kolkata
+        next_fire_times:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            format: date-time
+        preview_error:
+          type: string
+          description: Present when a row cannot be previewed; listing still succeeds so one bad schedule does not break the whole manager.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UpdateScheduleRequest:
+      type: object
+      x-examples:
+        retargetAuxToMain:
+          summary: Move an active schedule from aux to main
+          value:
+            targeting_config:
+              type: device
+              targets:
+                - device_id: spa-101
+                  output_id: main
+            priority: 2
+        splitAndRetargetFollowing:
+          summary: Keep earlier occurrences unchanged and retarget this and following
+          value:
+            edit_scope: this_and_following
+            effective_occurrence_at: 2026-07-20T09:00:00Z
+            targeting_config:
+              type: device
+              targets:
+                - device_id: spa-202
+                  output_id: aux
+            priority: 3
+      properties:
+        name:
+          type: string
+          maxLength: 60
+          description: Customer-facing schedule name. Empty or whitespace-only names are replaced with a readable generated fallback.
+        trigger_config:
+          $ref: "#/components/schemas/TriggerConfig"
+        content_config:
+          type: object
+          additionalProperties: true
+          description: Replacement content for this_occurrence, or new schedule content for whole_schedule/this_and_following edits.
+        targeting_config:
+          type: object
+          additionalProperties: true
+          description: Complete replacement device targeting object for whole_schedule or this_and_following. Pairs are normalized and deduplicated; durable schedules require type=device.
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: Replacement priority for whole_schedule or this_and_following.
+        edit_scope:
+          type: string
+          enum:
+            - whole_schedule
+            - this_occurrence
+            - this_and_following
+          default: whole_schedule
+        effective_occurrence_at:
+          type: string
+          format: date-time
+          description: Original occurrence timestamp required for this_occurrence and this_and_following.
+        replacement_fire_at:
+          type: string
+          format: date-time
+          description: Replacement timestamp for this_occurrence. Target, type, priority, and lane remain unchanged.
+        warning_confirmation_token:
+          type: string
+          description: Token returned by a rejected accepted-with-warnings decision; required to apply schedule updates with warning conflicts.
+    SchedulePreviewResponse:
+      type: object
+      required:
+        - trigger_type
+        - timezone
+        - next_fire_times
+        - entry_count
+      properties:
+        trigger_type:
+          type: string
+          enum:
+            - scheduled
+            - repetitive
+            - dynamic
+        timezone:
+          type: string
+          example: Asia/Kolkata
+        next_fire_times:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            format: date-time
+        entry_count:
+          type: integer
+        max_entries:
+          type: integer
+        warnings:
+          type: array
+          items:
+            type: string
+        conflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduleConflict"
+        blocking_conflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduleConflict"
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecisionPreviewCandidate"
+        decision:
+          $ref: "#/components/schemas/DecisionPreviewSummary"
+    DecisionPreviewCandidate:
+      type: object
+      properties:
+        type:
+          type: string
+        device_id:
+          type: string
+        priority:
+          type: integer
+        content:
+          $ref: "#/components/schemas/DecisionPreviewCandidateContent"
+        device:
+          $ref: "#/components/schemas/DecisionPreviewCandidateDevice"
+        cache:
+          $ref: "#/components/schemas/DecisionPreviewCandidateCache"
+    DecisionPreviewCandidateCache:
+      type: object
+      properties:
+        required:
+          type: boolean
+        readiness:
+          type: string
+          enum:
+            - ready
+            - unknown
+            - blocked
+            - not_required
+        reason:
+          type: string
+    DecisionPreviewCandidateDevice:
+      type: object
+      properties:
+        id:
+          type: string
+        known:
+          type: boolean
+        supports_offline_schedule:
+          type: boolean
+        supports_offline_schedule_known:
+          type: boolean
+        storage_kind:
+          type: string
+        storage_free_bytes:
+          type: integer
+          format: int64
+        storage_missing:
+          type: boolean
+        max_audio_bytes:
+          type: integer
+          format: int64
+        max_duration_ms:
+          type: integer
+          format: int64
+        max_cache_asset_bytes:
+          type: integer
+          format: int64
+    DecisionPreviewCandidateContent:
+      type: object
+      properties:
+        type:
+          type: string
+        asset_id:
+          type: string
+        duration_ms:
+          type: integer
+        duration_known:
+          type: boolean
+        size_bytes:
+          type: integer
+          format: int64
+        size_known:
+          type: boolean
+        codec:
+          type: string
+        lifecycle:
+          type: string
+    ScheduleConflict:
+      type: object
+      required:
+        - severity
+        - type
+        - device_id
+        - message
+      properties:
+        severity:
+          type: string
+          enum:
+            - warning
+            - error
+        type:
+          type: string
+          example: exact_duplicate
+        device_id:
+          type: string
+        existing_announcement_id:
+          type: string
+        existing_type:
+          type: string
+        existing_priority:
+          type: integer
+        day_of_week:
+          type: integer
+        hour:
+          type: integer
+        minute:
+          type: integer
+        message:
+          type: string
+    SchedulePreviewRequest:
+      type: object
+      required:
+        - trigger_config
+      properties:
+        trigger_config:
+          $ref: "#/components/schemas/TriggerConfig"
+        type:
+          type: string
+          enum:
+            - scheduled
+            - repetitive
+            - chained
+            - dynamic
+          description: Announcement type being previewed. Chained announcements use a scheduled trigger.
+        device_id:
+          type: string
+          description: Optional device target used for conflict analysis.
+        output_id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9_-]{0,23}$
+          default: main
+          description: Output lane paired with device_id for conflict analysis.
+        targets:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OutputTarget"
+          description: Explicit device/output pairs. Cannot be combined with device_id/output_id or targeting_config.
+        targeting_config:
+          type: object
+          additionalProperties: true
+          description: Device targeting config containing device_ids or targets. Cannot be combined with other preview target shapes.
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 3
+        exclude_announcement_id:
+          type: string
+          description: Existing announcement to ignore when previewing an edit.
+        content_config:
+          type: object
+          additionalProperties: true
+          description: Optional content candidate used by decision policies such as duplicate schedule analysis.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+        now:
+          type: string
+          format: date-time
+          description: Optional reference time for deterministic previews and tests. Defaults to server time.
+    ScheduleListResponse:
+      type: object
+      required:
+        - schedules
+        - total
+      properties:
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduleListItem"
+        total:
+          type: integer
+        cursor:
+          type: string
+    RotateWebhookSecretResponse:
+      type: object
+      required:
+        - webhook_id
+        - secret
+      properties:
+        webhook_id:
+          type: string
+        secret:
+          type: string
+          description: New signing secret returned only by this response.
+    WebhookDeliveriesResponse:
+      type: object
+      required:
+        - deliveries
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookDeliveryLog"
+    WebhookDeliveryLog:
+      type: object
+      required:
+        - id
+        - webhook_id
+        - tenant_id
+        - event_type
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+        webhook_id:
+          type: string
+        tenant_id:
+          type: string
+        event_type:
+          type: string
+          example: play.completed
+        status:
+          type: string
+          enum:
+            - delivered
+            - failed
+            - queued
+            - dead_letter
+        url:
+          type: string
+          format: uri
+        payload:
+          type: string
+        status_code:
+          type: integer
+        error:
+          type: string
+        latency_ms:
+          type: integer
+          format: int64
+        attempt_number:
+          type: integer
+          description: Current River delivery attempt number, starting at 1.
+        max_attempts:
+          type: integer
+          description: Maximum attempts before the delivery becomes dead_letter.
+        created_at:
+          type: string
+          format: date-time
+    Webhook:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - url
+        - events
+        - active
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UpdateWebhookRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    LegacyIngestEventResponse:
+      type: object
+      required:
+        - dispatched
+      properties:
+        dispatched:
+          type: integer
+          description: Number of event-driven announcements dispatched.
+    LegacyIngestEventRequest:
+      type: object
+      required:
+        - event
+      properties:
+        event:
+          type: string
+          description: Partner event name.
+          example: doorbell.pressed
+        data:
+          type: object
+          additionalProperties: true
+          description: Optional event payload data.
+    PartnerEventOccurrence:
+      type: object
+      required:
+        - occurrence_id
+        - event_type
+        - event_id
+        - occurred_at
+        - received_at
+        - status
+        - matched
+        - dispatched
+        - skipped
+        - correlation_id
+        - targets
+      properties:
+        occurrence_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+        event_id:
+          type: string
+        ordering_key:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        received_at:
+          type: string
+          format: date-time
+        correlation_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - processing
+            - completed
+            - partial
+            - failed
+            - rejected
+            - stale_ordering
+        matched:
+          type: integer
+          minimum: 0
+        dispatched:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+        completed_at:
+          type: string
+          format: date-time
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartnerEventTarget"
+    PartnerEventTarget:
+      type: object
+      required:
+        - announcement_id
+        - device_id
+        - output_id
+        - message_id
+        - status
+      properties:
+        announcement_id:
+          type: string
+        device_id:
+          type: string
+        output_id:
+          type: string
+        message_id:
+          type: string
+          format: uuid
+        decision_id:
+          type: string
+        execution_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - reserved
+            - queued
+            - played
+            - skipped
+            - failed
+        reason_code:
+          type: string
+    PartnerEventPublishResponse:
+      type: object
+      required:
+        - occurrence_id
+        - event_id
+        - event_type
+        - correlation_id
+        - matched
+        - dispatched
+        - skipped
+      properties:
+        occurrence_id:
+          type: string
+          format: uuid
+          description: Durable inbound occurrence identifier.
+        event_id:
+          type: string
+          description: Trimmed partner event ID or the server-generated event ID.
+        event_type:
+          type: string
+          description: Effective event type processed by the server.
+        correlation_id:
+          type: string
+          description: Request correlation identifier for operational tracing.
+        matched:
+          type: integer
+          minimum: 0
+          description: Active announcements selected for the event type before condition evaluation.
+        dispatched:
+          type: integer
+          minimum: 0
+          description: Per-device output deliveries queued or synchronously published.
+        skipped:
+          type: integer
+          minimum: 0
+          description: Announcements or resolved deliveries skipped by conditions, readiness, failures, or playback-lane policy.
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartnerEventTarget"
+    PartnerEventPublishRequest:
+      type: object
+      required:
+        - event_type
+        - event_id
+        - occurred_at
+      properties:
+        event_type:
+          type: string
+          minLength: 1
+          description: Business event type used to select active event-driven announcements.
+          example: bus.stop.approaching
+        event_id:
+          type: string
+          minLength: 1
+          description: Required partner-supplied event identifier, unique with event_type inside the tenant.
+          example: bus-R12-MG_ROAD-20260710T083000Z
+        occurred_at:
+          type: string
+          format: date-time
+          description: Time the business event occurred at the source.
+        data:
+          type: object
+          additionalProperties: true
+          description: Business metadata used for stored event conditions. Top-level scalar fields are available to conditions; nested objects and arrays are ignored.
+          example:
+            route_id: R12
+            stop_id: MG_ROAD
+            direction: northbound
+        interrupt_active:
+          type: boolean
+          default: false
+          description: When true, allows this event delivery to interrupt active playback on the same device output lane.
+    CreateWebhookResponse:
+      type: object
+      required:
+        - webhook
+        - secret
+      properties:
+        webhook:
+          $ref: "#/components/schemas/Webhook"
+        secret:
+          type: string
+          description: Signing secret returned only at creation time.
+    CreateWebhookRequest:
+      type: object
+      required:
+        - url
+        - events
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://partner.example.com/pitch/webhook
+        events:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          example:
+            - play.completed
+            - device.offline
+    WebhookListResponse:
+      type: object
+      required:
+        - webhooks
+      properties:
+        webhooks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Webhook"
+    DeliveryTimelineListResponse:
+      type: object
+      required:
+        - deliveries
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeliveryTimeline"
+        total:
+          type: integer
+        cursor:
+          type: string
+    DeliveryTimeline:
+      type: object
+      required:
+        - announcementId
+        - deviceId
+        - correlationId
+        - status
+        - events
+      properties:
+        announcementId:
+          type: string
+        deviceId:
+          type: string
+        outputId:
+          type: string
+          default: main
+        correlationId:
+          type: string
+        status:
+          type: string
+          enum:
+            - played
+            - failed
+            - pending
+            - published
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeliveryEvent"
+    DeliveryEvent:
+      type: object
+      required:
+        - type
+        - timestamp
+        - detail
+      properties:
+        type:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        detail:
+          type: string
+    Device:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - name
+        - output_mode
+        - status
+        - created_at
+        - updated_at
+        - timezone
+        - version
+      properties:
+        id:
+          type: string
+          example: spa_console_001
+        tenant_id:
+          type: string
+          example: tenant_console
+        name:
+          type: string
+          example: Platform Gate Speaker
+        group_id:
+          type: string
+          example: platform-1
+        output_mode:
+          type: string
+          enum:
+            - i2s
+            - bluetooth
+            - lineout
+        audio_outputs:
+          type: array
+          description: Audio output slots under this physical device. The main slot is the compatibility default when old requests or schedules provide device_id without output_id.
+          items:
+            $ref: "#/components/schemas/AudioOutputSlot"
+        status:
+          type: string
+          enum:
+            - online
+            - offline
+            - playing
+        last_seen:
+          type: string
+          format: date-time
+          nullable: true
+        firmware_version:
+          type: string
+        connectivity_type:
+          type: string
+        sd_free_bytes:
+          type: integer
+          format: int64
+        board_profile:
+          type: string
+        storage_kind:
+          type: string
+        storage_free_bytes:
+          type: integer
+          format: int64
+        storage_capacity_bytes:
+          type: integer
+          format: int64
+        storage_missing:
+          type: boolean
+        indexed_asset_count:
+          type: integer
+          format: int64
+        partial_cache_asset_count:
+          type: integer
+          format: int64
+        partial_cache_bytes:
+          type: integer
+          format: int64
+        partial_cache_expected_bytes:
+          type: integer
+          format: int64
+        cache_status:
+          type: string
+        cache_reason:
+          type: string
+        cache_content_key:
+          type: string
+        cache_bytes_done:
+          type: integer
+          format: int64
+        cache_total_bytes:
+          type: integer
+          format: int64
+        cache_spool_bytes:
+          type: integer
+          format: int64
+        cache_defer_count:
+          type: integer
+          format: int64
+        cache_spool_enabled:
+          type: boolean
+        pending_proof_log_count:
+          type: integer
+          format: int64
+        last_sd_mount_error:
+          type: integer
+          format: int64
+        reset_reason:
+          type: integer
+          format: int64
+        reset_reason_name:
+          type: string
+        content_readiness:
+          type: string
+        manifest_id:
+          type: string
+        max_audio_bytes:
+          type: integer
+          format: int64
+        max_duration_ms:
+          type: integer
+          format: int64
+        max_cache_asset_bytes:
+          type: integer
+          format: int64
+        supports_offline_schedule:
+          type: boolean
+        supports_schedule_delay_ms:
+          type: boolean
+        supports_background_cache:
+          type: boolean
+        supports_schedule_catalog_v2:
+          type: boolean
+        supports_schedule_rules_v3:
+          type: boolean
+        schedule_catalog_max_pages:
+          type: integer
+          format: int64
+        schedule_ram_due_entries:
+          type: integer
+          format: int64
+        schedule_max_page_bytes:
+          type: integer
+          format: int64
+        desired_config:
+          type: object
+          additionalProperties: true
+        reported_config:
+          type: object
+          additionalProperties: true
+        desired_shadow_version:
+          type: integer
+          format: int64
+        desired_shadow_hash:
+          type: string
+        desired_shadow_bytes:
+          type: integer
+        desired_shadow_updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_delta_published_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_snapshot_fetched_at:
+          type: string
+          format: date-time
+          nullable: true
+        timezone:
+          type: string
+          example: Asia/Kolkata
+        version:
+          type: integer
+        created_by:
+          type: string
+        updated_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+    AudioOutputSlot:
+      type: object
+      description: Child audio output target on a physical device. The durable identity is tenant_id, device_id, and output_id; when a request names device_id without output_id, the backend treats it as the main output slot.
+      required:
+        - id
+        - enabled
+        - ready
+        - supports_independent_playback
+        - playback_active
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9_-]{0,23}$
+          example: main
+        label:
+          type: string
+          example: Lobby speakers
+        role:
+          type: string
+          example: lineout_main
+        chip:
+          type: string
+          example: pcm5102
+        output_mode:
+          type: string
+          example: i2s
+        enabled:
+          type: boolean
+        ready:
+          type: boolean
+        supports_independent_playback:
+          type: boolean
+        supports_parallel_cached_playback:
+          type: boolean
+        supports_parallel_mixed_playback:
+          type: boolean
+        supports_parallel_live_playback:
+          type: boolean
+        volume:
+          type: integer
+          minimum: 0
+          maximum: 100
+        playback_active:
+          type: boolean
+        reported:
+          type: object
+          additionalProperties: true
+        reported_present:
+          type: boolean
+        last_reported_at:
+          type: string
+          format: date-time
+          nullable: true
+        targetable:
+          type: boolean
+        available:
+          type: boolean
+        availability_reason:
+          type: string
+          enum:
+            - output_not_reported
+            - output_disabled
+            - device_offline
+            - capability_stale
+            - output_not_ready
+    TargetBinding:
+      type: object
+      required:
+        - namespace
+        - external_id
+        - zone_id
+        - version
+        - created_by
+        - created_at
+        - updated_at
+      properties:
+        namespace:
+          type: string
+        external_id:
+          type: string
+        zone_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          format: int64
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OutputZonePreflightResponse:
+      type: object
+      required:
+        - allowed
+        - zone_id
+        - version
+        - target_hash
+        - total
+        - ready
+        - blocked
+        - targets
+      properties:
+        allowed:
+          type: boolean
+        zone_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          format: int64
+        target_hash:
+          type: string
+        total:
+          type: integer
+        ready:
+          type: integer
+        blocked:
+          type: integer
+        targets:
+          type: array
+          items:
+            type: object
+            required:
+              - device_id
+              - output_id
+              - ready
+              - observed_at
+              - source_mode
+              - available
+            properties:
+              device_id:
+                type: string
+              output_id:
+                type: string
+              ready:
+                type: boolean
+              reason:
+                type: string
+              observed_at:
+                type: string
+                format: date-time
+              last_reported_at:
+                type: string
+                format: date-time
+              source_mode:
+                type: string
+              available:
+                type: boolean
+              time_synced:
+                type: boolean
+              supports_parallel_cached_playback:
+                type: boolean
+              supports_parallel_mixed_playback:
+                type: boolean
+              supports_parallel_live_playback:
+                type: boolean
+    OutputZonePreflightRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          enum:
+            - instant
+            - event
+            - control
+            - schedule_authoring
+            - schedule_activation
+        expected_zone_version:
+          type: integer
+          format: int64
+        expected_target_count:
+          type: integer
+          minimum: 1
+          maximum: 500
+        content_config:
+          type: object
+          additionalProperties: true
+        allow_partial:
+          type: boolean
+          default: false
+          description: Honored only for normal instant/event fan-out; controls remain atomic.
+    OutputZone:
+      type: object
+      required:
+        - zone_id
+        - name
+        - version
+        - target_hash
+        - members
+        - availability
+        - created_by
+        - created_at
+        - updated_at
+      properties:
+        zone_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+        target_hash:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        members:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/OutputZoneMember"
+        availability:
+          type: object
+          required:
+            - ready
+            - blocked
+          properties:
+            ready:
+              type: integer
+            blocked:
+              type: integer
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OutputZoneMember:
+      type: object
+      additionalProperties: false
+      required:
+        - device_id
+        - output_id
+      properties:
+        device_id:
+          type: string
+          minLength: 1
+        output_id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9_-]{0,23}$
+    UpdateOutputZoneRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 1000
+    CreateOutputZoneRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - members
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 1000
+        members:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/OutputZoneMember"
+    OutputZoneList:
+      type: object
+      required:
+        - zones
+      properties:
+        zones:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputZone"
+        cursor:
+          type: string
+    TargetPreflightResponse:
+      type: object
+      required:
+        - allowed
+        - results
+      properties:
+        allowed:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/TargetPreflightResult"
+    TargetPreflightResult:
+      type: object
+      required:
+        - device_id
+        - output_id
+        - allowed
+        - available
+        - delivery_mode
+        - supports_parallel_cached_playback
+        - supports_parallel_mixed_playback
+        - supports_parallel_live_playback
+      properties:
+        device_id:
+          type: string
+        output_id:
+          type: string
+        allowed:
+          type: boolean
+        reason:
+          type: string
+          enum:
+            - invalid_target
+            - output_not_reported
+            - output_disabled
+            - device_offline
+            - capability_stale
+            - output_not_ready
+            - shared_transport_busy
+            - content_mode_unknown
+        warning:
+          type: string
+        available:
+          type: boolean
+        last_reported_at:
+          type: string
+          format: date-time
+          nullable: true
+        delivery_mode:
+          type: string
+          enum:
+            - cached
+            - live
+            - unknown
+        supports_parallel_cached_playback:
+          type: boolean
+        supports_parallel_mixed_playback:
+          type: boolean
+        supports_parallel_live_playback:
+          type: boolean
+    TargetPreflightRequest:
+      type: object
+      required:
+        - intent
+        - targets
+      properties:
+        intent:
+          type: string
+          enum:
+            - instant
+            - event
+            - control
+            - schedule_authoring
+            - schedule_activation
+        targets:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/OutputTarget"
+        content_config:
+          type: object
+          additionalProperties: true
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Opaque pagination cursor from the previous response.
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+      description: Maximum number of items to return.
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-zA-Z0-9_-]{1,128}$
+        maxLength: 128
+      description: PITCH device identifier.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: PITCH JWT
+      description: PITCH access JWT containing user, tenant, and tenant-role claims.
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Pitch-Key
+      description: PITCH partner API key. The legacy X-SmartPA-Key alias remains accepted during the compatibility window.
