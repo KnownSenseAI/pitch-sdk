@@ -15,7 +15,7 @@ Choose least privilege: `audio:read` covers audio and folder discovery, `audio:w
 Until the npm-registry release is available, pin the public GitHub release:
 
 ```bash
-npm install "github:KnownSenseAI/pitch-sdk#v0.3.1"
+npm install "github:KnownSenseAI/pitch-sdk#v0.3.2"
 ```
 
 Your application imports it by its package name:

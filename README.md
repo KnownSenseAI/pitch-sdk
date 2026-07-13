@@ -9,7 +9,7 @@ Until an npm-registry release is available, pin the public GitHub release in you
 ```json
 {
   "dependencies": {
-      "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.3.1"
+      "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.3.2"
   }
 }
 ```
