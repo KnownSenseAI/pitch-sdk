@@ -6,7 +6,7 @@ Use an instant announcement when audio should be queued immediately for a device
 
 1. Discover the device and targetable outputs.
 2. Preflight the target when readiness matters to the calling workflow.
-3. Submit a tenant-owned audio asset with a stable idempotency key.
+3. Submit a customer-owned [audio-library asset](/guides/audio-library-and-tts) with a stable idempotency key.
 4. Persist the returned correlation ID for delivery monitoring.
 
 ```ts

@@ -77,6 +77,21 @@ describe("PitchClient", () => {
     expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
   });
 
+  it("uploads audio as multipart data without overriding the boundary header", async () => {
+    const { client, fetch } = setup();
+    await client.audio.upload({
+      file: new Blob(["audio-bytes"], { type: "audio/ogg" }),
+      filename: "notice.ogg",
+      metadata: { name: "Passenger notice", lifecycle: "permanent" },
+    });
+    const init = fetch.mock.calls[0]![1];
+    expect(init?.body).toBeInstanceOf(FormData);
+    expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+    const form = init?.body as FormData;
+    expect(form.get("file")).toBeInstanceOf(Blob);
+    expect(JSON.parse(String(form.get("metadata")))).toEqual({ name: "Passenger notice", lifecycle: "permanent" });
+  });
+
   it("requires caller idempotency keys for unsafe creates", () => {
     const { client } = setup();
     expect(() => client.controls.create({} as never, "")).toThrow(/Idempotency/);
@@ -117,6 +132,10 @@ describe("PitchClient", () => {
 
   it("maps every public wrapper to its frozen method and route", async () => {
     const calls: Array<[string, string, (client: PitchClient) => Promise<unknown>, string | undefined]> = [
+      ["POST", "/v1/tts/generate", c => c.tts.preview({ text: "Next stop", language: "en" }), undefined],
+      ["GET", "/v1/audio", c => c.audio.list(), undefined],
+      ["POST", "/v1/audio", c => c.audio.upload({ file: new Blob(["audio"]), filename: "audio.ogg", metadata: { name: "Audio" } }), undefined],
+      ["POST", "/v1/audio/from-tts", c => c.audio.createFromTTS({ text: "Next stop", language: "en" }), undefined],
       ["GET", "/v1/devices", c => c.devices.list(), undefined],
       ["GET", "/v1/devices/dev%2F1", c => c.devices.get("dev/1"), undefined],
       ["POST", "/v1/targets/preflight", c => c.devices.preflightTargets({} as never), undefined],

@@ -27,8 +27,11 @@ export default defineConfig({
       {
         text: "Product guides",
         items: [
+          { text: "Audio library and TTS", link: "/guides/audio-library-and-tts" },
           { text: "Instant announcements", link: "/guides/instant-announcements" },
           { text: "Scheduled announcements", link: "/guides/scheduled-announcements" },
+          { text: "Repetitive announcements", link: "/guides/repetitive-announcements" },
+          { text: "Chained announcements", link: "/guides/chained-announcements" },
           { text: "Business events", link: "/guides/business-events" },
           { text: "Output controls", link: "/guides/output-controls" },
           { text: "Webhooks", link: "/guides/webhooks" },

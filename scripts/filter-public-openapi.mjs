@@ -98,6 +98,14 @@ function sanitizePublicComponents(components) {
     "volume", "playback_active", "last_reported_at", "targetable", "available",
     "availability_reason",
   ]);
+  keepProperties(schemas.AudioAsset, [
+    "id", "name", "source", "folder_id", "checksum", "duration_ms", "format",
+    "sample_rate_hz", "channels", "size_bytes", "language", "tags", "lifecycle",
+    "usage_count", "created_at", "updated_at",
+  ]);
+  keepProperties(schemas.AudioUploadMetadata, [
+    "name", "folder_id", "language", "tags", "lifecycle", "source",
+  ]);
   keepProperties(schemas.DecisionPreviewCandidateDevice, [
     "id", "known", "supports_offline_schedule", "supports_offline_schedule_known",
     "max_audio_bytes", "max_duration_ms",

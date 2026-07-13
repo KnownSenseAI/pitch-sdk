@@ -4,6 +4,70 @@
  */
 
 export interface paths {
+    "/v1/tts/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate TTS preview
+         * @description Synthesizes reviewed text into a temporary audio preview. Requires the tts:compose API-key scope. Character usage is billed and rate-limited through the same PITCH voice path used by audio-library saves.
+         */
+        post: operations["generateTTSPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audio assets
+         * @description Lists customer-owned audio assets. Requires the audio:write API-key scope. Omit folder_id to list all assets, use folder_id=root for library-root assets, or pass a folder id for one folder.
+         */
+        get: operations["listAudioAssets"];
+        put?: never;
+        /**
+         * Upload audio asset
+         * @description Uploads one audio file and saves it as a customer-owned library asset. Requires the audio:write API-key scope.
+         */
+        post: operations["uploadAudioAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/from-tts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save TTS audio asset
+         * @description Generates reviewed text as speech and saves it directly into the customer audio library, optionally inside a folder. Requires the audio:write API-key scope.
+         */
+        post: operations["createAudioFromTTS"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/devices": {
         parameters: {
             query?: never;
@@ -835,10 +899,9 @@ export interface components {
             timezone?: string;
             /**
              * @description Scheduled trigger mode. Omit or use weekly for cron schedules; use once with fire_at for one-time schedules.
-             * @default weekly
              * @enum {string}
              */
-            mode: "weekly" | "once";
+            mode?: "weekly" | "once";
             /**
              * Format: date-time
              * @description One-time scheduled fire timestamp. Required when mode is once.
@@ -856,6 +919,8 @@ export interface components {
             window_start?: string;
             /** @example 18:00 */
             window_end?: string;
+            /** @description Days on which a repetitive window may start, using 0 for Sunday through 6 for Saturday. Omit to use every day. For an overnight window, the selected day is the day on which the window starts. */
+            days_of_week?: number[];
             /**
              * @description Partner business-event selector. Required when type is event_driven.
              * @example bus.stop.approaching
@@ -864,6 +929,148 @@ export interface components {
             /** @description Legacy flat conditional rule; every condition must match. */
             conditions?: components["schemas"]["RuleCondition"][];
             rule?: components["schemas"]["Rule"];
+        };
+        TTSPreviewRequest: {
+            /** @description Reviewed text to synthesize. */
+            text: string;
+            /** @example hi */
+            language: string;
+            /** @description Optional PITCH voice identifier. */
+            voice?: string;
+            /** @description Optional product-level speaking tone. */
+            tone?: string;
+            style_tags?: string[];
+            /**
+             * Format: float
+             * @description Optional speech-speed multiplier.
+             */
+            speed?: number;
+        };
+        TTSSaveRequest: components["schemas"]["TTSPreviewRequest"] & {
+            /** @description Customer-facing audio-library name. PITCH generates a name when omitted. */
+            name?: string;
+            /**
+             * @description Target audio folder id, or root/omitted for the library root.
+             * @example root
+             */
+            folder_id?: string;
+        };
+        TTSPreviewResponse: {
+            /**
+             * Format: uri
+             * @description Temporary preview URL. This is not an audio-library asset id.
+             */
+            audio_url: string;
+            checksum?: string;
+            duration_ms?: number;
+            language?: string;
+            /** @description PITCH voice selected for the preview. */
+            resolved_voice?: string;
+            tone?: string;
+            style_tags?: string[];
+            cache_hit: boolean;
+            /** Format: int64 */
+            chars_used: number;
+            /** Format: int64 */
+            chars_billed?: number;
+            /** Format: int64 */
+            tts_remaining?: number;
+            /** Format: int64 */
+            tts_limit?: number;
+            tts_is_overage?: boolean;
+        };
+        AudioUploadMetadata: {
+            name: string;
+            /**
+             * @description Target audio folder id, or root/omitted for the library root.
+             * @example root
+             */
+            folder_id?: string;
+            /** @example hi */
+            language?: string;
+            tags?: string[];
+            /**
+             * @description Omit for permanent. Durable schedules should reference permanent assets.
+             * @enum {string}
+             */
+            lifecycle?: "permanent" | "temporary";
+            /**
+             * @description Omit for upload.
+             * @enum {string}
+             */
+            source?: "upload" | "recording";
+        };
+        AudioListResponse: {
+            assets: components["schemas"]["AudioAsset"][];
+            /** @description Cursor for the next page when more assets are available. */
+            next_cursor?: string;
+        };
+        AudioAsset: {
+            /** @description Stable asset identifier used in announcement content_config.asset_id. */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            source: "upload" | "tts" | "recording";
+            folder_id?: string;
+            checksum: string;
+            duration_ms: number;
+            /** @example opus */
+            format: string;
+            sample_rate_hz?: number;
+            channels?: number;
+            /** Format: int64 */
+            size_bytes: number;
+            language?: string;
+            tags?: string[];
+            /** @enum {string} */
+            lifecycle: "permanent" | "temporary";
+            usage_count: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AnnouncementContentConfig: components["schemas"]["AssetContentConfig"] | components["schemas"]["URLContentConfig"] | components["schemas"]["TTSContentConfig"] | components["schemas"]["ChainedContentConfig"];
+        AssetContentConfig: {
+            /** @enum {string} */
+            type: "asset";
+            /** @description Customer-owned audio library asset identifier. */
+            asset_id: string;
+        };
+        URLContentConfig: {
+            /** @enum {string} */
+            type: "url";
+            /** Format: uri */
+            audio_url: string;
+            /** @description Required for durable scheduled, repetitive, conditional, and event-driven announcements. */
+            checksum?: string;
+            /** @enum {string} */
+            lifecycle?: "permanent" | "temporary";
+        };
+        /** @description Temporary text-to-speech content for instant announcements. Save generated speech to the audio library before using it in a durable schedule. */
+        TTSContentConfig: {
+            /** @enum {string} */
+            type: "tts";
+            tts_request: {
+                text: string;
+                language: string;
+                /** @description Optional PITCH voice identifier. */
+                voice?: string;
+                tone?: string;
+                style_tags?: string[];
+                /** Format: float */
+                speed?: number;
+            } & {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Ordered audio-library assets played by a weekly chained schedule. Omitted chain_gap_ms uses a 2000 millisecond gap; explicit 0 disables the gap. */
+        ChainedContentConfig: {
+            /** @enum {string} */
+            type: "chained";
+            /** @description Pause before every item after the first. Omit for the 2000 millisecond default. */
+            chain_gap_ms?: number;
+            chain_items: components["schemas"]["AssetContentConfig"][];
         };
         /** @description Bounded conditional rule tree. Evaluation is local only; no scripts, regex, or network calls. */
         Rule: {
@@ -908,9 +1115,7 @@ export interface components {
             /** @description Explicit group target shortcut. */
             group_id?: string;
             /** @description Announcement content configuration, such as an uploaded asset, HTTPS audio, text-to-speech, or chained content. Event-driven announcements require durable playable content; prefer asset_id, and include a checksum for URL content. */
-            content_config: {
-                [key: string]: unknown;
-            };
+            content_config: components["schemas"]["AnnouncementContentConfig"];
             trigger_config?: components["schemas"]["TriggerConfig"];
             priority?: number;
             /** Format: date-time */
@@ -1147,9 +1352,7 @@ export interface components {
             /** @description Existing announcement to ignore when previewing an edit. */
             exclude_announcement_id?: string;
             /** @description Optional content candidate used by decision policies such as duplicate schedule analysis. */
-            content_config?: {
-                [key: string]: unknown;
-            };
+            content_config?: components["schemas"]["AnnouncementContentConfig"];
             /** @default 5 */
             limit: number;
             /**
@@ -1634,6 +1837,174 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    generateTTSPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description TTS preview generated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSPreviewResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description TTS request body exceeds the server cap. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description TTS text violates content policy. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listAudioAssets: {
+        parameters: {
+            query?: {
+                /** @description Folder id to scope results, or root for the library root. Omit to list all assets. */
+                folder_id?: string;
+                /** @description Case-insensitive name search. */
+                search?: string;
+                language?: string;
+                /** @description Optional asset-origin filter. */
+                source?: "upload" | "tts" | "recording";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio assets. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioListResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    uploadAudioAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    /** @description JSON string matching AudioUploadMetadata, including optional folder_id. */
+                    metadata: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Audio asset uploaded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioAsset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description File or multipart body is too large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createAudioFromTTS: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description TTS audio asset created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioAsset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description TTS body is too large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     listDevices: {
         parameters: {
             query?: {

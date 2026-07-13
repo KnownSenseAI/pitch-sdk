@@ -9,7 +9,7 @@ Until an npm-registry release is available, pin the public GitHub release in you
 ```json
 {
   "dependencies": {
-      "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.2.0"
+      "@KnownSenseAI/pitch-sdk": "github:KnownSenseAI/pitch-sdk#v0.3.0"
   }
 }
 ```
@@ -31,7 +31,7 @@ API-key mode is the default for partner operations. Server processes calling own
 
 Store API keys only in server-side secret storage. Required-idempotency methods require a caller key; event publication defaults it from `event_id`. Inspect `PitchAPIError` for the structured code, details, correlation ID, retry delay, and rate-limit headers. The SDK never retries automatically.
 
-The client exposes the complete partner catalog through `devices`, `announcements`, `schedules`, `events`, `deliveries`, `webhooks`, `controls`, `zones`, and `targetBindings`. Every method accepts request options in its final argument for a caller-provided `correlationId` and `AbortSignal`. List methods accept query parameters before those request options.
+The client exposes the complete partner catalog through `audio`, `tts`, `devices`, `announcements`, `schedules`, `events`, `deliveries`, `webhooks`, `controls`, `zones`, and `targetBindings`. Every method accepts request options in its final argument for a caller-provided `correlationId` and `AbortSignal`. List methods accept query parameters before those request options.
 
 Schedule operations live under `client.schedules`. The original pre-1.0 `announcements.updateSchedule`, `announcements.preview`, `announcements.pause`, and `announcements.deleteSchedule` names remain as compatibility aliases. `announcements.delete` deletes the announcement definition through `/v1/announcements/{id}`.
 
@@ -67,8 +67,10 @@ The [PITCH developer documentation](https://knownsenseai.github.io/pitch-sdk/) i
 
 Runnable, CI-typechecked examples cover:
 
+- audio-library discovery, uploads, and reviewed text-to-speech assets;
 - device and output discovery with target preflight;
-- instant and scheduled announcements;
+- instant, scheduled, and calendar-based repetitive announcements;
+- weekly chained sequences of audio-library assets;
 - application-owned business events;
 - audited output controls and zone preflight;
 - delivery tracing; and

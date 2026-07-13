@@ -13,7 +13,7 @@ The PITCH SDK is intended for trusted server processes. Keep the API key in your
 Until the npm-registry release is available, pin the public GitHub release:
 
 ```bash
-npm install "github:KnownSenseAI/pitch-sdk#v0.2.0"
+npm install "github:KnownSenseAI/pitch-sdk#v0.3.0"
 ```
 
 Your application imports it by its package name:

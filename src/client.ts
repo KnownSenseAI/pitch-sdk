@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { operations, paths } from "./generated/openapi.js";
+import type { components, operations, paths } from "./generated/openapi.js";
 import { PitchAPIError } from "./errors.js";
 
 type Path = keyof paths;
@@ -35,6 +35,12 @@ export interface RequestOptions {
   signal?: AbortSignal | undefined;
 }
 
+export interface AudioUploadInput {
+  file: Blob;
+  filename: string;
+  metadata: components["schemas"]["AudioUploadMetadata"];
+}
+
 type Query = Record<string, string | number | boolean | undefined>;
 type InternalRequestOptions = RequestOptions & {
   idempotencyKey?: string | undefined;
@@ -42,6 +48,8 @@ type InternalRequestOptions = RequestOptions & {
 };
 
 export class PitchClient {
+  readonly audio;
+  readonly tts;
   readonly devices;
   readonly announcements;
   readonly events;
@@ -76,6 +84,22 @@ export class PitchClient {
     this.#fetch = options.fetch ?? globalThis.fetch;
     this.#userAgent = options.userAgent;
 
+    this.audio = {
+      list: (query?: Query, options?: RequestOptions) => this.request<"listAudioAssets">("GET", "/v1/audio", undefined, { ...options, query }),
+      upload: (input: AudioUploadInput, options?: RequestOptions) => {
+        if (!(input.file instanceof Blob)) throw new TypeError("audio upload file must be a Blob");
+        if (!input.filename.trim()) throw new TypeError("audio upload filename must not be empty");
+        if (!input.metadata.name.trim()) throw new TypeError("audio upload metadata.name must not be empty");
+        const form = new FormData();
+        form.append("file", input.file, input.filename);
+        form.append("metadata", JSON.stringify(input.metadata));
+        return this.request<"uploadAudioAsset">("POST", "/v1/audio", form, options);
+      },
+      createFromTTS: (body: JSONBody<"/v1/audio/from-tts", "post">, options?: RequestOptions) => this.request<"createAudioFromTTS">("POST", "/v1/audio/from-tts", body, options),
+    };
+    this.tts = {
+      preview: (body: JSONBody<"/v1/tts/generate", "post">, options?: RequestOptions) => this.request<"generateTTSPreview">("POST", "/v1/tts/generate", body, options),
+    };
     this.devices = {
       list: (query?: Query, options?: RequestOptions) => this.request<"listDevices">("GET", "/v1/devices", undefined, { ...options, query }),
       get: (deviceId: string, options?: RequestOptions) => this.request<"getDevice">("GET", `/v1/devices/${segment(deviceId)}`, undefined, options),
@@ -165,11 +189,11 @@ export class PitchClient {
     });
     if (this.#apiKey !== undefined) headers.set("X-Pitch-Key", this.#apiKey);
     if (this.#bearerToken !== undefined) headers.set("Authorization", `Bearer ${this.#bearerToken}`);
-    if (body !== undefined) headers.set("Content-Type", "application/json");
+    if (body !== undefined && !(body instanceof FormData)) headers.set("Content-Type", "application/json");
     if (options.idempotencyKey !== undefined) headers.set("X-Idempotency-Key", options.idempotencyKey);
     if (this.#userAgent !== undefined) headers.set("User-Agent", this.#userAgent);
     const init: RequestInit = { method, headers };
-    if (body !== undefined) init.body = JSON.stringify(body);
+    if (body !== undefined) init.body = body instanceof FormData ? body : JSON.stringify(body);
     if (options.signal !== undefined) init.signal = options.signal;
     const response = await this.#fetch(url, init);
     const responseBody = await readBody(response);

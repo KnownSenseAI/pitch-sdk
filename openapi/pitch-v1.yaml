@@ -10,6 +10,216 @@ security:
   - apiKeyAuth: []
   - bearerAuth: []
 paths:
+  /v1/tts/generate:
+    post:
+      operationId: generateTTSPreview
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Generate TTS preview
+      description: Synthesizes reviewed text into a temporary audio preview. Requires the tts:compose API-key scope. Character usage is billed and rate-limited through the same PITCH voice path used by audio-library saves.
+      tags:
+        - TTS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSPreviewRequest"
+      responses:
+        "200":
+          description: TTS preview generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSPreviewResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: TTS request body exceeds the server cap.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: TTS text violates content policy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/audio:
+    get:
+      operationId: listAudioAssets
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: List audio assets
+      description: Lists customer-owned audio assets. Requires the audio:write API-key scope. Omit folder_id to list all assets, use folder_id=root for library-root assets, or pass a folder id for one folder.
+      tags:
+        - Audio
+      parameters:
+        - name: folder_id
+          in: query
+          schema:
+            type: string
+          description: Folder id to scope results, or root for the library root. Omit to list all assets.
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive name search.
+        - name: language
+          in: query
+          schema:
+            type: string
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum:
+              - upload
+              - tts
+              - recording
+          description: Optional asset-origin filter.
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Audio assets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: uploadAudioAsset
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Upload audio asset
+      description: Uploads one audio file and saves it as a customer-owned library asset. Requires the audio:write API-key scope.
+      tags:
+        - Audio
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - metadata
+              properties:
+                file:
+                  type: string
+                  format: binary
+                metadata:
+                  type: string
+                  description: JSON string matching AudioUploadMetadata, including optional folder_id.
+                  x-pitch-json-schema:
+                    $ref: "#/components/schemas/AudioUploadMetadata"
+      responses:
+        "201":
+          description: Audio asset uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          description: File or multipart body is too large.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/from-tts:
+    post:
+      operationId: createAudioFromTTS
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Save TTS audio asset
+      description: Generates reviewed text as speech and saves it directly into the customer audio library, optionally inside a folder. Requires the audio:write API-key scope.
+      tags:
+        - Audio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSSaveRequest"
+      responses:
+        "201":
+          description: TTS audio asset created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          description: TTS body is too large.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /v1/devices:
     get:
       operationId: listDevices
@@ -2189,7 +2399,6 @@ components:
           enum:
             - weekly
             - once
-          default: weekly
           description: Scheduled trigger mode. Omit or use weekly for cron schedules; use once with fire_at for one-time schedules.
         fire_at:
           type: string
@@ -2218,6 +2427,16 @@ components:
         window_end:
           type: string
           example: 18:00
+        days_of_week:
+          type: array
+          minItems: 1
+          maxItems: 7
+          uniqueItems: true
+          description: Days on which a repetitive window may start, using 0 for Sunday through 6 for Saturday. Omit to use every day. For an overnight window, the selected day is the day on which the window starts.
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
         webhook_event:
           type: string
           minLength: 1
@@ -2230,6 +2449,300 @@ components:
             $ref: "#/components/schemas/RuleCondition"
         rule:
           $ref: "#/components/schemas/Rule"
+    TTSPreviewRequest:
+      type: object
+      required:
+        - text
+        - language
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2500
+          description: Reviewed text to synthesize.
+        language:
+          type: string
+          minLength: 1
+          example: hi
+        voice:
+          type: string
+          description: Optional PITCH voice identifier.
+        tone:
+          type: string
+          description: Optional product-level speaking tone.
+        style_tags:
+          type: array
+          items:
+            type: string
+        speed:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 2
+          description: Optional speech-speed multiplier.
+    TTSSaveRequest:
+      allOf:
+        - $ref: "#/components/schemas/TTSPreviewRequest"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: Customer-facing audio-library name. PITCH generates a name when omitted.
+            folder_id:
+              type: string
+              description: Target audio folder id, or root/omitted for the library root.
+              example: root
+    TTSPreviewResponse:
+      type: object
+      required:
+        - audio_url
+        - cache_hit
+        - chars_used
+      properties:
+        audio_url:
+          type: string
+          format: uri
+          description: Temporary preview URL. This is not an audio-library asset id.
+        checksum:
+          type: string
+        duration_ms:
+          type: integer
+        language:
+          type: string
+        resolved_voice:
+          type: string
+          description: PITCH voice selected for the preview.
+        tone:
+          type: string
+        style_tags:
+          type: array
+          items:
+            type: string
+        cache_hit:
+          type: boolean
+        chars_used:
+          type: integer
+          format: int64
+        chars_billed:
+          type: integer
+          format: int64
+        tts_remaining:
+          type: integer
+          format: int64
+        tts_limit:
+          type: integer
+          format: int64
+        tts_is_overage:
+          type: boolean
+    AudioUploadMetadata:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+        folder_id:
+          type: string
+          description: Target audio folder id, or root/omitted for the library root.
+          example: root
+        language:
+          type: string
+          example: hi
+        tags:
+          type: array
+          items:
+            type: string
+        lifecycle:
+          type: string
+          enum:
+            - permanent
+            - temporary
+          description: Omit for permanent. Durable schedules should reference permanent assets.
+        source:
+          type: string
+          enum:
+            - upload
+            - recording
+          description: Omit for upload.
+    AudioListResponse:
+      type: object
+      required:
+        - assets
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioAsset"
+        next_cursor:
+          type: string
+          description: Cursor for the next page when more assets are available.
+    AudioAsset:
+      type: object
+      required:
+        - id
+        - name
+        - source
+        - checksum
+        - duration_ms
+        - format
+        - size_bytes
+        - lifecycle
+        - usage_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Stable asset identifier used in announcement content_config.asset_id.
+        name:
+          type: string
+        source:
+          type: string
+          enum:
+            - upload
+            - tts
+            - recording
+        folder_id:
+          type: string
+        checksum:
+          type: string
+        duration_ms:
+          type: integer
+        format:
+          type: string
+          example: opus
+        sample_rate_hz:
+          type: integer
+        channels:
+          type: integer
+        size_bytes:
+          type: integer
+          format: int64
+        language:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        lifecycle:
+          type: string
+          enum:
+            - permanent
+            - temporary
+        usage_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AnnouncementContentConfig:
+      oneOf:
+        - $ref: "#/components/schemas/AssetContentConfig"
+        - $ref: "#/components/schemas/URLContentConfig"
+        - $ref: "#/components/schemas/TTSContentConfig"
+        - $ref: "#/components/schemas/ChainedContentConfig"
+    AssetContentConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - asset_id
+      properties:
+        type:
+          type: string
+          enum:
+            - asset
+        asset_id:
+          type: string
+          minLength: 1
+          description: Customer-owned audio library asset identifier.
+    URLContentConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - audio_url
+      properties:
+        type:
+          type: string
+          enum:
+            - url
+        audio_url:
+          type: string
+          format: uri
+        checksum:
+          type: string
+          description: Required for durable scheduled, repetitive, conditional, and event-driven announcements.
+        lifecycle:
+          type: string
+          enum:
+            - permanent
+            - temporary
+    TTSContentConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - tts_request
+      properties:
+        type:
+          type: string
+          enum:
+            - tts
+        tts_request:
+          type: object
+          additionalProperties: true
+          required:
+            - text
+            - language
+          properties:
+            text:
+              type: string
+              minLength: 1
+            language:
+              type: string
+              minLength: 1
+            voice:
+              type: string
+              description: Optional PITCH voice identifier.
+            tone:
+              type: string
+            style_tags:
+              type: array
+              items:
+                type: string
+            speed:
+              type: number
+              format: float
+              minimum: 0.5
+              maximum: 2
+      description: Temporary text-to-speech content for instant announcements. Save generated speech to the audio library before using it in a durable schedule.
+    ChainedContentConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - chain_items
+      description: Ordered audio-library assets played by a weekly chained schedule. Omitted chain_gap_ms uses a 2000 millisecond gap; explicit 0 disables the gap.
+      properties:
+        type:
+          type: string
+          enum:
+            - chained
+        chain_gap_ms:
+          type: integer
+          minimum: 0
+          maximum: 60000
+          description: Pause before every item after the first. Omit for the 2000 millisecond default.
+        chain_items:
+          type: array
+          minItems: 1
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/AssetContentConfig"
     Rule:
       type: object
       description: Bounded conditional rule tree. Evaluation is local only; no scripts, regex, or network calls.
@@ -2315,8 +2828,7 @@ components:
           type: string
           description: Explicit group target shortcut.
         content_config:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/AnnouncementContentConfig"
           description: Announcement content configuration, such as an uploaded asset, HTTPS audio, text-to-speech, or chained content. Event-driven announcements require durable playable content; prefer asset_id, and include a checksum for URL content.
         trigger_config:
           $ref: "#/components/schemas/TriggerConfig"
@@ -2792,8 +3304,7 @@ components:
           type: string
           description: Existing announcement to ignore when previewing an edit.
         content_config:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/AnnouncementContentConfig"
           description: Optional content candidate used by decision policies such as duplicate schedule analysis.
         limit:
           type: integer
