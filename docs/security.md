@@ -17,6 +17,10 @@ New API-key requests use `X-Pitch-Key`. Signed webhooks use:
 
 PITCH temporarily supports equivalent `X-SmartPA-*` aliases for deployed legacy integrations. New integrations should only emit and document `X-Pitch-*` names.
 
+## Grant least privilege
+
+Issue separate keys for separate workloads. Inventory and discovery need read scopes such as `audio:read`; library mutation needs `audio:write`; speech composition, preview, and pronunciation management need `tts:compose`. Avoid granting announcement, output-control, emergency, or billing scopes to an audio preparation worker unless it actually performs those operations. Review the [Production TTS workflow](/guides/production-tts) before enabling automated saves.
+
 ## Verify webhooks before parsing
 
 Read the exact raw request bytes, resolve the signature headers with `readWebhookSignatureHeaders`, and call `verifyWebhookSignature` before parsing JSON. The verifier rejects expired timestamps, malformed signatures, unsupported versions, and conflicting current/legacy headers.

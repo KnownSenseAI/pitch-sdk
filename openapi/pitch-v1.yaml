@@ -10,6 +10,58 @@ security:
   - apiKeyAuth: []
   - bearerAuth: []
 paths:
+  /v1/tts/compose:
+    post:
+      operationId: composeTTS
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Compose TTS script
+      description: Converts a business intent into reviewable speakable text and supported voice controls. The response includes validation issues and warnings so callers can approve text before synthesis. This non-idempotent composition request is not retried by the SDK.
+      tags:
+        - TTS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSComposeRequest"
+      responses:
+        "200":
+          description: TTS composition generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSComposeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: Composer request body exceeds the server cap.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Prompt or generated text violates TTS content policy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          description: Composition was unavailable or returned an invalid response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /v1/tts/generate:
     post:
       operationId: generateTTSPreview
@@ -58,15 +110,247 @@ paths:
           $ref: "#/components/responses/InternalError"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /v1/tts/compose-batch:
+    post:
+      operationId: composeTTSBatch
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Compose multilingual TTS scripts
+      description: Adapts one reviewed intent into speakable scripts for up to five languages. Each returned item must be reviewed independently before preview or save. This non-idempotent composition request is not retried by the SDK.
+      tags:
+        - TTS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSBatchComposeRequest"
+      responses:
+        "200":
+          description: Batch TTS composition generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSBatchComposeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: Batch composition body exceeds the server cap.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: One or more requested scripts violate content policy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/tts/generate-batch:
+    post:
+      operationId: generateTTSPreviewBatch
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Generate multilingual TTS previews
+      description: Synthesizes up to five reviewed scripts as billable previews. Per-item failures are returned alongside successful items; this non-idempotent request is not retried by the SDK.
+      tags:
+        - TTS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSBatchPreviewRequest"
+      responses:
+        "200":
+          description: Batch TTS previews generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSBatchPreviewResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: Batch preview body exceeds the server cap.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: One or more preview items fail structured validation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/tts/pronunciation:
+    get:
+      operationId: getTTSPronunciation
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Get pronunciation preferences
+      description: Returns customer-managed pronunciation terms, available templates, and enabled-term limits. The response omits internal synchronization details.
+      tags:
+        - TTS
+      responses:
+        "200":
+          description: Pronunciation preferences and limits.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSPronunciationSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/tts/pronunciation/terms:
+    put:
+      operationId: upsertTTSPronunciationTerm
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Add or update a pronunciation term
+      description: Saves one customer-reviewed pronunciation term and returns the updated summary. This non-idempotent write is not retried by the SDK.
+      tags:
+        - TTS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSPronunciationTermRequest"
+      responses:
+        "200":
+          description: Updated pronunciation summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSPronunciationSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    delete:
+      operationId: deleteTTSPronunciationTerm
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Delete a pronunciation term
+      description: Deletes one term selected by exact language and word query values and returns the updated summary. This non-idempotent write is not retried by the SDK.
+      tags:
+        - TTS
+      parameters:
+        - name: language
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: word
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated pronunciation summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSPronunciationSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/tts/pronunciation/templates/{industry}/apply:
+    post:
+      operationId: applyTTSPronunciationTemplate
+      x-pitch-partner: true
+      x-pitch-scope:
+        - tts:compose
+      x-pitch-idempotency: none
+      summary: Apply an approved pronunciation template
+      description: Applies an available template within the enabled-term limit and returns inserted and skipped counts. This non-idempotent write is not retried by the SDK.
+      tags:
+        - TTS
+      parameters:
+        - name: industry
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated pronunciation summary with apply counts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSPronunciationApplyResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /v1/audio:
     get:
       operationId: listAudioAssets
       x-pitch-partner: true
       x-pitch-scope:
-        - audio:write
+        - audio:read
       x-pitch-idempotency: none
       summary: List audio assets
-      description: Lists customer-owned audio assets. Requires the audio:write API-key scope. Omit folder_id to list all assets, use folder_id=root for library-root assets, or pass a folder id for one folder.
+      description: Lists customer-owned audio assets. Requires the audio:read API-key scope. Omit folder_id to list all assets, use folder_id=root for library-root assets, or pass a folder id for one folder.
       tags:
         - Audio
       parameters:
@@ -130,7 +414,7 @@ paths:
         - audio:write
       x-pitch-idempotency: none
       summary: Upload audio asset
-      description: Uploads one audio file and saves it as a customer-owned library asset. Requires the audio:write API-key scope.
+      description: Uploads one non-empty audio file of at most 25 MiB (26,214,400 bytes) and saves it as a customer-owned library asset. The complete multipart request is capped at 26 MiB. Requires the audio:write API-key scope. Metadata is provided as a JSON string in the metadata multipart field.
       tags:
         - Audio
       requestBody:
@@ -146,6 +430,7 @@ paths:
                 file:
                   type: string
                   format: binary
+                  description: Non-empty audio file, at most 25 MiB (26,214,400 bytes).
                 metadata:
                   type: string
                   description: JSON string matching AudioUploadMetadata, including optional folder_id.
@@ -167,7 +452,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "413":
-          description: File or multipart body is too large.
+          description: File exceeds 25 MiB or the complete multipart request exceeds 26 MiB.
           content:
             application/json:
               schema:
@@ -220,6 +505,637 @@ paths:
           $ref: "#/components/responses/InternalError"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /v1/audio/folders:
+    get:
+      operationId: listAudioFolders
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:read
+      x-pitch-idempotency: none
+      summary: List audio folders
+      description: Returns direct child folders under the requested parent plus breadcrumbs for the selected parent. Use parent_id=root or omit parent_id for root folders.
+      tags:
+        - Audio
+      parameters:
+        - name: parent_id
+          in: query
+          schema:
+            type: string
+            default: root
+          description: Parent folder id, or root for top-level folders.
+      responses:
+        "200":
+          description: Audio folder children and breadcrumbs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioFolderListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createAudioFolder
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Create audio folder
+      description: Creates a customer audio-library folder. Sibling names are unique case-insensitively within the same parent. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAudioFolderRequest"
+      responses:
+        "201":
+          description: Audio folder created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioFolder"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/folders/tree:
+    get:
+      operationId: listAudioFolderTree
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:read
+      x-pitch-idempotency: none
+      summary: List audio folder tree
+      description: Returns up to 500 active folders for target pickers. Use search to find folders outside the first page when truncated is true.
+      tags:
+        - Audio
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive folder-name search across the tenant.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 500
+      responses:
+        "200":
+          description: Audio folder tree.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioFolderTreeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/folders/{folderId}:
+    patch:
+      operationId: renameAudioFolder
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Rename audio folder
+      description: Renames an existing customer audio folder. Moving folders is not supported. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAudioFolderRequest"
+      responses:
+        "200":
+          description: Audio folder renamed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioFolder"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteAudioFolder
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Delete audio folder
+      description: Deletes an empty customer audio folder. Folders containing child folders or audio assets return 409. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      responses:
+        "204":
+          description: Audio folder deleted.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/from-tts-batch:
+    post:
+      operationId: createAudioFromTTSBatch
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Save multilingual TTS assets
+      description: Saves up to five billable audio assets and optionally one merged multilingual asset with a configurable silence gap. A 207 response reports partial success. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSBatchSaveRequest"
+      responses:
+        "201":
+          description: Batch TTS assets created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSBatchSaveResponse"
+        "207":
+          description: Partial batch success with per-item errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TTSBatchSaveResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: Batch save body exceeds the server cap.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: One or more items fail structured validation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/audio/{id}/move:
+    post:
+      operationId: moveAudioAsset
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Move audio asset
+      description: Changes only the folder reference for an audio asset; schedules and playback content are unchanged. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveAudioAssetRequest"
+      responses:
+        "200":
+          description: Audio asset moved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/{id}/copy:
+    post:
+      operationId: copyAudioAsset
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Copy audio asset
+      description: Creates a new library asset in the target folder with a new stable asset id while reusing the approved source audio. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CopyAudioAssetRequest"
+      responses:
+        "201":
+          description: Audio asset copied.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/{id}:
+    get:
+      operationId: getAudioAsset
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:read
+      x-pitch-idempotency: none
+      summary: Get audio asset
+      description: Returns one customer audio asset by stable asset id.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audio asset.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      operationId: updateAudioAsset
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Update audio asset metadata
+      description: Updates customer-facing metadata without replacing the approved audio. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAudioAssetRequest"
+      responses:
+        "200":
+          description: Audio asset updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioAsset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteAudioAsset
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Delete audio asset
+      description: Deletes an audio asset from the customer library. This non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Audio asset deleted.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/{id}/download:
+    get:
+      operationId: getAudioDownload
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:read
+      x-pitch-idempotency: none
+      summary: Get entitled audio download URL
+      description: Returns a short-lived download URL for the active revision when audio download is enabled for the customer.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Short-lived audio download URL for the active revision.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioDownloadResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/{id}/edit-context:
+    get:
+      operationId: getAudioTTSEditContext
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:read
+      x-pitch-idempotency: none
+      summary: Get generated-audio edit context
+      description: Returns the reviewed text, language, active revision, editable controls, and usage impact for one generated audio asset.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generated-audio edit context.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioTTSEditContext"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/audio/{id}/tts-revisions:
+    post:
+      operationId: createAudioTTSRevision
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Create generated-audio revision
+      description: Synthesizes reviewed replacement text and either replaces the active revision behind the stable asset id or creates a deliberate copy. This billable non-idempotent write is not retried by the SDK.
+      tags:
+        - Audio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AudioTTSRevisionRequest"
+      responses:
+        "200":
+          description: Generated-audio revision result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioTTSRevisionResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          description: Revision request body exceeds the server cap.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Reviewed text or controls fail structured validation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /v1/audio/bulk-upload:
+    post:
+      operationId: bulkUploadAudioAssets
+      x-pitch-partner: true
+      x-pitch-scope:
+        - audio:write
+      x-pitch-idempotency: none
+      summary: Bulk upload audio assets
+      description: Uploads one to five non-empty audio files in one bounded multipart request. Each file is capped at 25 MiB (26,214,400 bytes), aggregate raw file bytes are capped at 125 MiB, and the complete multipart request is capped at 126 MiB (132,120,576 bytes). A 207 response reports partial success by file index. This non-idempotent write is not retried by the SDK; inspect the library before repeating an ambiguous request.
+      tags:
+        - Audio
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  description: One to five non-empty audio files, each at most 25 MiB.
+                  items:
+                    type: string
+                    format: binary
+                metadata:
+                  type: string
+                  description: JSON string with optional defaults and per-file items, for example {"defaults":{"language":"hi","tags":["station"]},"items":[{"name":"Platform chime"}]}.
+            encoding:
+              files:
+                style: form
+                explode: true
+      responses:
+        "201":
+          description: All files uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkAudioUploadResponse"
+        "207":
+          description: Some files failed while others may have been uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkAudioUploadResponse"
+        "400":
+          description: Invalid pagination cursor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidCursor:
+                  value:
+                    error:
+                      code: invalid_cursor
+                      message: Invalid pagination cursor
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: One file exceeds 25 MiB, aggregate raw file bytes exceed 125 MiB, or the complete multipart request exceeds 126 MiB.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          description: Every file failed before an audio asset could be created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkAudioUploadResponse"
   /v1/devices:
     get:
       operationId: listDevices
@@ -719,10 +1635,7 @@ paths:
         - logs:read
       x-pitch-idempotency: none
       summary: List announcement delivery timelines
-      description: >-
-        Returns customer-scoped proof-of-play delivery timelines ordered newest
-        first. Raw delivery history is queryable for up to seven days; older
-        rows are deleted.
+      description: Returns customer-scoped proof-of-play delivery timelines ordered newest first. Raw delivery history is queryable for up to seven days; older rows are deleted.
       tags:
         - Logs
       parameters:
@@ -841,7 +1754,7 @@ paths:
         - announce:write
       x-pitch-idempotency: required
       summary: Publish a partner business event
-      description: Publishes an application-owned business event for matching event-driven announcements.
+      description: Publishes a meaningful business event for event-driven announcements. Partners should convert GPS or sensor streams into business events before calling this API; PITCH does not accept raw GPS traces here.
       tags:
         - Events
       security:
@@ -901,7 +1814,7 @@ paths:
         - logs:read
       x-pitch-idempotency: none
       summary: List durable partner event occurrences
-      description: Returns the authenticated customer's event outcomes and per-output delivery results.
+      description: Returns customer-scoped event outcomes. Raw GPS traces are not accepted or returned.
       tags:
         - Events
       security:
@@ -1215,7 +2128,7 @@ paths:
       operationId: listSchedules
       x-pitch-partner: true
       x-pitch-scope:
-        - announce:write
+        - announce:read
       x-pitch-idempotency: none
       summary: List schedule manager rows
       description: Returns cursor-paginated scheduled, repetitive, chained, and cron-backed dynamic announcements with bounded server-side fire-time previews. This lets the console render schedule views without polling each announcement individually.
@@ -1462,7 +2375,7 @@ paths:
       operationId: listAnnouncements
       x-pitch-partner: true
       x-pitch-scope:
-        - announce:write
+        - announce:read
       x-pitch-idempotency: none
       summary: List announcements
       description: Returns customer-scoped announcements with optional status filtering and cursor pagination.
@@ -1575,7 +2488,7 @@ paths:
       operationId: getAnnouncement
       x-pitch-partner: true
       x-pitch-scope:
-        - announce:write
+        - announce:read
       x-pitch-idempotency: none
       summary: Get an announcement
       description: Returns one customer-scoped announcement by identifier.
@@ -1781,7 +2694,7 @@ paths:
       operationId: listOutputControls
       x-pitch-partner: true
       x-pitch-scope:
-        - outputs:control
+        - outputs:read
       x-pitch-idempotency: none
       summary: List output controls
       tags:
@@ -1816,7 +2729,7 @@ paths:
       operationId: getOutputControl
       x-pitch-partner: true
       x-pitch-scope:
-        - outputs:control
+        - outputs:read
       x-pitch-idempotency: none
       summary: Get an output control and all snapshotted target results
       tags:
@@ -2438,16 +3351,6 @@ components:
         window_end:
           type: string
           example: 18:00
-        days_of_week:
-          type: array
-          minItems: 1
-          maxItems: 7
-          uniqueItems: true
-          description: Days on which a repetitive window may start, using 0 for Sunday through 6 for Saturday. Omit to use every day. For an overnight window, the selected day is the day on which the window starts.
-          items:
-            type: integer
-            minimum: 0
-            maximum: 6
         webhook_event:
           type: string
           minLength: 1
@@ -2460,300 +3363,6 @@ components:
             $ref: "#/components/schemas/RuleCondition"
         rule:
           $ref: "#/components/schemas/Rule"
-    TTSPreviewRequest:
-      type: object
-      required:
-        - text
-        - language
-      properties:
-        text:
-          type: string
-          minLength: 1
-          maxLength: 2500
-          description: Reviewed text to synthesize.
-        language:
-          type: string
-          minLength: 1
-          example: hi
-        voice:
-          type: string
-          description: Optional PITCH voice identifier.
-        tone:
-          type: string
-          description: Optional product-level speaking tone.
-        style_tags:
-          type: array
-          items:
-            type: string
-        speed:
-          type: number
-          format: float
-          minimum: 0.5
-          maximum: 2
-          description: Optional speech-speed multiplier.
-    TTSSaveRequest:
-      allOf:
-        - $ref: "#/components/schemas/TTSPreviewRequest"
-        - type: object
-          properties:
-            name:
-              type: string
-              description: Customer-facing audio-library name. PITCH generates a name when omitted.
-            folder_id:
-              type: string
-              description: Target audio folder id, or root/omitted for the library root.
-              example: root
-    TTSPreviewResponse:
-      type: object
-      required:
-        - audio_url
-        - cache_hit
-        - chars_used
-      properties:
-        audio_url:
-          type: string
-          format: uri
-          description: Temporary preview URL. This is not an audio-library asset id.
-        checksum:
-          type: string
-        duration_ms:
-          type: integer
-        language:
-          type: string
-        resolved_voice:
-          type: string
-          description: PITCH voice selected for the preview.
-        tone:
-          type: string
-        style_tags:
-          type: array
-          items:
-            type: string
-        cache_hit:
-          type: boolean
-        chars_used:
-          type: integer
-          format: int64
-        chars_billed:
-          type: integer
-          format: int64
-        tts_remaining:
-          type: integer
-          format: int64
-        tts_limit:
-          type: integer
-          format: int64
-        tts_is_overage:
-          type: boolean
-    AudioUploadMetadata:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          minLength: 1
-        folder_id:
-          type: string
-          description: Target audio folder id, or root/omitted for the library root.
-          example: root
-        language:
-          type: string
-          example: hi
-        tags:
-          type: array
-          items:
-            type: string
-        lifecycle:
-          type: string
-          enum:
-            - permanent
-            - temporary
-          description: Omit for permanent. Durable schedules should reference permanent assets.
-        source:
-          type: string
-          enum:
-            - upload
-            - recording
-          description: Omit for upload.
-    AudioListResponse:
-      type: object
-      required:
-        - assets
-      properties:
-        assets:
-          type: array
-          items:
-            $ref: "#/components/schemas/AudioAsset"
-        next_cursor:
-          type: string
-          description: Cursor for the next page when more assets are available.
-    AudioAsset:
-      type: object
-      required:
-        - id
-        - name
-        - source
-        - checksum
-        - duration_ms
-        - format
-        - size_bytes
-        - lifecycle
-        - usage_count
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: string
-          description: Stable asset identifier used in announcement content_config.asset_id.
-        name:
-          type: string
-        source:
-          type: string
-          enum:
-            - upload
-            - tts
-            - recording
-        folder_id:
-          type: string
-        checksum:
-          type: string
-        duration_ms:
-          type: integer
-        format:
-          type: string
-          example: opus
-        sample_rate_hz:
-          type: integer
-        channels:
-          type: integer
-        size_bytes:
-          type: integer
-          format: int64
-        language:
-          type: string
-        tags:
-          type: array
-          items:
-            type: string
-        lifecycle:
-          type: string
-          enum:
-            - permanent
-            - temporary
-        usage_count:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    AnnouncementContentConfig:
-      oneOf:
-        - $ref: "#/components/schemas/AssetContentConfig"
-        - $ref: "#/components/schemas/URLContentConfig"
-        - $ref: "#/components/schemas/TTSContentConfig"
-        - $ref: "#/components/schemas/ChainedContentConfig"
-    AssetContentConfig:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - asset_id
-      properties:
-        type:
-          type: string
-          enum:
-            - asset
-        asset_id:
-          type: string
-          minLength: 1
-          description: Customer-owned audio library asset identifier.
-    URLContentConfig:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - audio_url
-      properties:
-        type:
-          type: string
-          enum:
-            - url
-        audio_url:
-          type: string
-          format: uri
-        checksum:
-          type: string
-          description: Required for durable scheduled, repetitive, conditional, and event-driven announcements.
-        lifecycle:
-          type: string
-          enum:
-            - permanent
-            - temporary
-    TTSContentConfig:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - tts_request
-      properties:
-        type:
-          type: string
-          enum:
-            - tts
-        tts_request:
-          type: object
-          additionalProperties: true
-          required:
-            - text
-            - language
-          properties:
-            text:
-              type: string
-              minLength: 1
-            language:
-              type: string
-              minLength: 1
-            voice:
-              type: string
-              description: Optional PITCH voice identifier.
-            tone:
-              type: string
-            style_tags:
-              type: array
-              items:
-                type: string
-            speed:
-              type: number
-              format: float
-              minimum: 0.5
-              maximum: 2
-      description: Temporary text-to-speech content for instant announcements. Save generated speech to the audio library before using it in a durable schedule.
-    ChainedContentConfig:
-      type: object
-      additionalProperties: false
-      required:
-        - type
-        - chain_items
-      description: Ordered audio-library assets played by a weekly chained schedule. Omitted chain_gap_ms uses a 2000 millisecond gap; explicit 0 disables the gap.
-      properties:
-        type:
-          type: string
-          enum:
-            - chained
-        chain_gap_ms:
-          type: integer
-          minimum: 0
-          maximum: 60000
-          description: Pause before every item after the first. Omit for the 2000 millisecond default.
-        chain_items:
-          type: array
-          minItems: 1
-          maxItems: 32
-          items:
-            $ref: "#/components/schemas/AssetContentConfig"
     Rule:
       type: object
       description: Bounded conditional rule tree. Evaluation is local only; no scripts, regex, or network calls.
@@ -2839,7 +3448,8 @@ components:
           type: string
           description: Explicit group target shortcut.
         content_config:
-          $ref: "#/components/schemas/AnnouncementContentConfig"
+          type: object
+          additionalProperties: true
           description: Announcement content configuration, such as an uploaded asset, HTTPS audio, text-to-speech, or chained content. Event-driven announcements require durable playable content; prefer asset_id, and include a checksum for URL content.
         trigger_config:
           $ref: "#/components/schemas/TriggerConfig"
@@ -3315,7 +3925,8 @@ components:
           type: string
           description: Existing announcement to ignore when previewing an edit.
         content_config:
-          $ref: "#/components/schemas/AnnouncementContentConfig"
+          type: object
+          additionalProperties: true
           description: Optional content candidate used by decision policies such as duplicate schedule analysis.
         limit:
           type: integer
@@ -3724,6 +4335,7 @@ components:
           format: date-time
         detail:
           type: string
+          description: Human-readable context for this delivery event.
     Device:
       type: object
       required:
@@ -4175,6 +4787,938 @@ components:
         content_config:
           type: object
           additionalProperties: true
+    BulkAudioUploadResponse:
+      type: object
+      required:
+        - assets
+        - errors
+        - total
+        - succeeded
+        - failed
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioAsset"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/BulkAudioUploadError"
+        total:
+          type: integer
+          example: 3
+        succeeded:
+          type: integer
+          example: 2
+        failed:
+          type: integer
+          example: 1
+    BulkAudioUploadError:
+      type: object
+      required:
+        - index
+        - filename
+        - code
+        - message
+      properties:
+        index:
+          type: integer
+          minimum: 0
+        filename:
+          type: string
+          example: broken.wav
+        code:
+          type: string
+          enum:
+            - missing_file
+            - read_failed
+            - file_too_large
+            - missing_name
+            - asset_limit_reached
+            - storage_quota_exceeded
+            - unsupported_format
+            - duration_too_long
+            - upload_failed
+        message:
+          type: string
+    AudioAsset:
+      type: object
+      required:
+        - id
+        - name
+        - source
+        - checksum
+        - duration_ms
+        - format
+        - sample_rate_hz
+        - channels
+        - size_bytes
+        - lifecycle
+        - usage_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        source:
+          type: string
+          enum:
+            - upload
+            - tts
+            - recording
+        folder_id:
+          type: string
+          description: Audio folder id. Omitted when the asset is in the library root.
+        checksum:
+          type: string
+        duration_ms:
+          type: integer
+        format:
+          type: string
+          example: opus
+        sample_rate_hz:
+          type: integer
+          example: 48000
+        channels:
+          type: integer
+          example: 1
+        size_bytes:
+          type: integer
+          format: int64
+        language:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        lifecycle:
+          type: string
+          enum:
+            - permanent
+            - temporary
+        usage_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AudioTTSRevisionResult:
+      type: object
+      required:
+        - mode
+        - asset
+        - revision
+        - changed
+        - impact
+      properties:
+        mode:
+          type: string
+          enum:
+            - replace
+            - copy
+        asset:
+          $ref: "#/components/schemas/AudioAsset"
+        revision:
+          $ref: "#/components/schemas/AudioAssetRevisionSummary"
+        changed:
+          type: boolean
+        impact:
+          $ref: "#/components/schemas/AudioAssetUsageImpact"
+    AudioAssetUsageImpact:
+      type: object
+      required:
+        - active_schedules
+        - affected_devices
+        - resync_queued
+      properties:
+        active_schedules:
+          type: integer
+        affected_devices:
+          type: integer
+        affected_device_ids:
+          type: array
+          items:
+            type: string
+        group_count:
+          type: integer
+        affected_devices_unknown:
+          type: boolean
+        resync_queued:
+          type: boolean
+    AudioAssetRevisionSummary:
+      type: object
+      required:
+        - revision
+        - checksum
+        - duration_ms
+      properties:
+        revision:
+          type: integer
+        checksum:
+          type: string
+        duration_ms:
+          type: integer
+    AudioTTSRevisionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - expected_revision
+        - text
+        - language
+      properties:
+        mode:
+          type: string
+          enum:
+            - replace
+            - copy
+        expected_revision:
+          type: integer
+        text:
+          type: string
+        language:
+          type: string
+        name:
+          type: string
+    AudioTTSEditContext:
+      type: object
+      required:
+        - asset
+        - active_revision
+        - editable
+        - impact
+      properties:
+        asset:
+          $ref: "#/components/schemas/AudioAsset"
+        active_revision:
+          type: integer
+        text:
+          type: string
+        language:
+          type: string
+        name:
+          type: string
+        editable:
+          type: boolean
+        reason:
+          type: string
+        impact:
+          $ref: "#/components/schemas/AudioAssetUsageImpact"
+    AudioDownloadResponse:
+      type: object
+      required:
+        - asset_id
+        - download_url
+        - expires_at
+        - filename
+        - content_type
+      properties:
+        asset_id:
+          type: string
+          example: asset-1
+        revision:
+          type: integer
+          example: 1
+        download_url:
+          type: string
+          format: uri
+          example: https://storage.example.com/audio/station-chime.ogg?X-Amz-Expires=900
+        expires_at:
+          type: string
+          format: date-time
+          example: 2026-07-01T10:15:00Z
+        filename:
+          type: string
+          example: station-chime-asset-1-r1.ogg
+        content_type:
+          type: string
+          example: audio/ogg
+        size_bytes:
+          type: integer
+          format: int64
+          example: 12345
+        checksum:
+          type: string
+          example: 7f83b1657ff1fc53b92dc18148a1d65dfa135b
+    UpdateAudioAssetRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: Platform chime
+        language:
+          type: string
+          description: Optional BCP 47-ish language code used by the console for filtering and TTS context.
+          example: hi
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - station
+            - urgent
+        lifecycle:
+          type: string
+          enum:
+            - permanent
+            - temporary
+    CopyAudioAssetRequest:
+      type: object
+      required:
+        - folder_id
+      additionalProperties: false
+      properties:
+        folder_id:
+          type: string
+          description: Target folder id, or root to copy the asset to the library root.
+          example: folder-1
+        name:
+          type: string
+          description: Optional name for the copied asset. Defaults to the source name with " copy" appended.
+          example: Summer promo copy
+    MoveAudioAssetRequest:
+      type: object
+      required:
+        - folder_id
+      additionalProperties: false
+      properties:
+        folder_id:
+          type: string
+          description: Target folder id, or root to move the asset to the library root.
+          example: root
+    TTSBatchSaveResponse:
+      type: object
+      required:
+        - assets
+        - errors
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioAsset"
+        merged_asset:
+          $ref: "#/components/schemas/AudioAsset"
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    TTSBatchSaveRequest:
+      type: object
+      required:
+        - items
+      properties:
+        folder_id:
+          type: string
+          description: Target audio folder id for all saved assets, or root for the library root.
+          example: root
+        items:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            allOf:
+              - $ref: "#/components/schemas/TTSPreviewRequest"
+              - type: object
+                required:
+                  - name
+                properties:
+                  name:
+                    type: string
+        merge:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            name:
+              type: string
+            gap_ms:
+              type: integer
+              minimum: 0
+              maximum: 60000
+              description: Silence inserted between language segments in the merged asset. Defaults to 2000 when omitted.
+            language:
+              type: string
+              example: multi
+    TTSPreviewRequest:
+      type: object
+      additionalProperties: true
+      required:
+        - text
+        - language
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2500
+        language:
+          type: string
+          example: hi
+        voice:
+          type: string
+          description: Optional PITCH voice identifier.
+        tone:
+          type: string
+          description: Product feeling used when voice is automatic.
+        style_tags:
+          type: array
+          items:
+            type: string
+          description: Additional style hints used for automatic speaker selection.
+        speed:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 2
+          description: Optional speech-speed multiplier.
+        spec:
+          type: object
+          additionalProperties: true
+          description: Optional client-side review metadata. Renderer uses top-level voice and speed.
+    AudioFolder:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: folder-1
+        parent_id:
+          type: string
+          description: Parent folder id. Omitted for root-level folders.
+          example: parent-folder
+        name:
+          type: string
+          example: Summer promos
+        depth:
+          type: integer
+          minimum: 0
+          description: Folder depth in tree responses.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+    UpdateAudioFolderRequest:
+      type: object
+      required:
+        - name
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Monsoon promos
+    AudioFolderTreeResponse:
+      type: object
+      required:
+        - folders
+      properties:
+        folders:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioFolder"
+    CreateAudioFolderRequest:
+      type: object
+      required:
+        - name
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Summer promos
+        parent_id:
+          type: string
+          description: Parent folder id, or root/omitted for a root-level folder.
+          example: root
+    AudioFolderListResponse:
+      type: object
+      required:
+        - breadcrumbs
+        - folders
+      properties:
+        parent:
+          $ref: "#/components/schemas/AudioFolder"
+        breadcrumbs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioFolder"
+        folders:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioFolder"
+        truncated:
+          type: boolean
+          description: True when more matching folders exist than the requested limit.
+    TTSSaveRequest:
+      allOf:
+        - $ref: "#/components/schemas/TTSPreviewRequest"
+        - type: object
+          additionalProperties: true
+          properties:
+            name:
+              type: string
+              description: Saved asset name. Auto-generated from text when omitted.
+            folder_id:
+              type: string
+              description: Target audio folder id, or root/omitted for the library root.
+              example: folder-1
+    AudioUploadMetadata:
+      type: object
+      additionalProperties: true
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        folder_id:
+          type: string
+          description: Target audio folder id, or root/omitted for the library root.
+          example: folder-1
+        language:
+          type: string
+          example: hi
+        tags:
+          type: array
+          items:
+            type: string
+        lifecycle:
+          type: string
+          enum:
+            - permanent
+            - temporary
+        source:
+          type: string
+          enum:
+            - upload
+            - recording
+    AudioListResponse:
+      type: object
+      required:
+        - assets
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioAsset"
+        total:
+          type: integer
+        next_cursor:
+          type: string
+          description: Cursor for the next page when more assets are available.
+    TTSPronunciationApplyResponse:
+      allOf:
+        - $ref: "#/components/schemas/TTSPronunciationSummary"
+        - type: object
+          required:
+            - inserted
+            - skipped
+          properties:
+            inserted:
+              type: integer
+            skipped:
+              type: integer
+    TTSPronunciationSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - terms
+        - dictionary
+        - templates
+        - enabled_count
+        - max_enabled_terms
+      properties:
+        terms:
+          type: array
+          items:
+            $ref: "#/components/schemas/TTSPronunciationTerm"
+        dictionary:
+          $ref: "#/components/schemas/TTSPronunciationDictionary"
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/TTSPronunciationTemplate"
+        enabled_count:
+          type: integer
+        max_enabled_terms:
+          type: integer
+    TTSPronunciationTemplate:
+      type: object
+      additionalProperties: false
+      required:
+        - industry
+        - label
+        - description
+        - term_count
+        - sample_terms
+      properties:
+        industry:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        term_count:
+          type: integer
+        sample_terms:
+          type: array
+          items:
+            type: string
+    TTSPronunciationDictionary:
+      type: object
+      additionalProperties: false
+      required:
+        - term_count
+      properties:
+        term_count:
+          type: integer
+        last_synced_at:
+          type: string
+          format: date-time
+    TTSPronunciationTerm:
+      type: object
+      additionalProperties: false
+      required:
+        - language
+        - word
+        - pronunciation
+        - enabled
+        - source
+      properties:
+        language:
+          type: string
+        word:
+          type: string
+        pronunciation:
+          type: string
+        enabled:
+          type: boolean
+        source:
+          type: string
+        industry:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    TTSPronunciationTermRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - language
+        - word
+        - pronunciation
+      properties:
+        language:
+          type: string
+        word:
+          type: string
+        pronunciation:
+          type: string
+        enabled:
+          type: boolean
+    TTSBatchPreviewResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            allOf:
+              - type: object
+                required:
+                  - language
+                properties:
+                  language:
+                    type: string
+              - $ref: "#/components/schemas/TTSPreviewResponse"
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    TTSPreviewResponse:
+      type: object
+      required:
+        - audio_url
+        - cache_hit
+        - chars_used
+      properties:
+        audio_url:
+          type: string
+          format: uri
+        checksum:
+          type: string
+        duration_ms:
+          type: integer
+        language:
+          type: string
+        resolved_voice:
+          type: string
+          description: PITCH voice selected for the preview.
+        tone:
+          type: string
+        style_tags:
+          type: array
+          items:
+            type: string
+        cache_hit:
+          type: boolean
+        chars_used:
+          type: integer
+          format: int64
+        chars_billed:
+          type: integer
+          format: int64
+        tts_remaining:
+          type: integer
+          format: int64
+        tts_limit:
+          type: integer
+          format: int64
+        tts_is_overage:
+          type: boolean
+    TTSBatchPreviewRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/TTSPreviewRequest"
+    TTSBatchComposeResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TTSComposeResponse"
+        warnings:
+          type: array
+          items:
+            type: string
+    TTSComposeResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - text
+        - language
+        - speaker
+        - pace
+        - asset_name_suggestion
+      properties:
+        text:
+          type: string
+          maxLength: 2500
+          example: Kripya platform 3 par peeli rekha ke peeche khade rahein.
+        language:
+          type: string
+          example: hi
+        speaker:
+          type: string
+          description: Empty string means the resolved PITCH default.
+        pace:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 2
+          example: 1
+        style_tags:
+          type: array
+          items:
+            type: string
+          example:
+            - professional
+            - calm
+        rationale:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        validation_issues:
+          type: array
+          description: User-visible text ranges that were flagged before text-to-speech, such as emoji or decorative symbols that cannot be spoken.
+          items:
+            $ref: "#/components/schemas/TTSValidationIssue"
+        asset_name_suggestion:
+          type: string
+          example: platform-3-safety-hi
+        cache_hit:
+          type: boolean
+        ai_remaining:
+          type: integer
+          format: int64
+        ai_limit:
+          type: integer
+          format: int64
+        ai_is_overage:
+          type: boolean
+    TTSValidationIssue:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - severity
+        - message
+      properties:
+        code:
+          type: string
+          example: unsupported_tts_symbol
+        severity:
+          type: string
+          enum:
+            - warning
+            - error
+          example: warning
+        message:
+          type: string
+          example: Emoji and decorative symbols are removed before speech because text-to-speech cannot read them.
+        text:
+          type: string
+          description: The flagged text snippet when available.
+          example: 🎉
+        start:
+          type: integer
+          description: Zero-based character offset where the flagged text starts.
+          example: 23
+        end:
+          type: integer
+          description: Zero-based character offset where the flagged text ends.
+          example: 24
+    TTSBatchComposeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - prompt
+        - languages
+      properties:
+        prompt:
+          type: string
+          maxLength: 1000
+        languages:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            type: string
+        speaker:
+          type: string
+        tone:
+          type: string
+        pace:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 2
+        audience_context:
+          type: string
+          maxLength: 280
+        max_chars:
+          type: integer
+          maximum: 2500
+    TTSComposeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - language
+      properties:
+        intent:
+          type: string
+          maxLength: 1000
+          description: User-facing request. Prefer this field for new clients.
+          example: Tell platform 3 passengers to stand behind the yellow line in a calm professional tone.
+        prompt:
+          type: string
+          maxLength: 1000
+          description: Backward-compatible alias for intent used by the console.
+        text:
+          type: string
+          maxLength: 1000
+          description: Backward-compatible alias for intent.
+        language:
+          type: string
+          example: hi
+        speaker:
+          type: string
+          maxLength: 80
+          description: Optional PITCH voice identifier.
+        voice:
+          type: string
+          maxLength: 80
+          description: Alias for speaker.
+        pace:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 2
+          description: Optional requested pace. Out-of-range values are normalized by PITCH.
+        style_tags:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            maxLength: 40
+          example:
+            - professional
+            - calm
+        tone:
+          type: string
+          maxLength: 40
+          example: professional
+        emotion:
+          type: string
+          maxLength: 40
+          example: happy
+        audience:
+          type: string
+          maxLength: 280
+          example: Platform 3 commuters
+        audience_context:
+          type: string
+          maxLength: 280
+          description: Alias for audience.
+        venue_type:
+          type: string
+          maxLength: 80
+          example: railway_station
+        asset_hint:
+          type: string
+          maxLength: 80
+          example: Platform 3 safety
+        max_chars:
+          type: integer
+          minimum: 1
+          maximum: 2500
+          example: 500
+        context:
+          type: object
+          maxProperties: 50
+          additionalProperties: true
+          description: Optional small metadata object. Maximum serialized size is 4096 bytes, maximum depth is 4.
   parameters:
     Cursor:
       name: cursor
@@ -4201,13 +5745,13 @@ components:
         maxLength: 128
       description: PITCH device identifier.
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: PITCH access token
-      description: PITCH access token for supported owner/admin operations.
     apiKeyAuth:
       type: apiKey
       in: header
       name: X-Pitch-Key
       description: PITCH partner API key. The legacy X-SmartPA-Key alias remains accepted during the compatibility window.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: PITCH access token
+      description: PITCH access token for supported owner/admin operations.

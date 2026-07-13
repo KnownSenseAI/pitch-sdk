@@ -1,5 +1,5 @@
 export { PitchClient } from "./client.js";
-export type { AudioUploadInput, DeliveryListQuery, DeliveryTraceOptions, PitchClientOptions, RequestOptions, SuccessResponse } from "./client.js";
+export type { AudioBulkUploadFile, AudioBulkUploadInput, AudioUploadInput, DeliveryListQuery, DeliveryTraceOptions, PitchClientOptions, PronunciationTermKey, RequestOptions, SuccessResponse } from "./client.js";
 export { PitchAPIError } from "./errors.js";
 export {
   LEGACY_SMARTPA_WEBHOOK_HEADERS,

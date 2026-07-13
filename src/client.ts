@@ -10,7 +10,7 @@ type JSONBody<P extends Path, M extends Method<P>> = paths[P][M] extends {
   requestBody?: { content: { "application/json": infer Body } };
 } ? Body : never;
 
-type SuccessStatus = 200 | 201 | 202 | 204;
+type SuccessStatus = 200 | 201 | 202 | 204 | 207;
 type JSONContent<Response> = Response extends { content: { "application/json": infer Body } } ? Body : void;
 export type SuccessResponse<OperationID extends keyof operations> = {
   [Status in keyof operations[OperationID]["responses"]]: Status extends SuccessStatus
@@ -48,7 +48,25 @@ export interface AudioUploadInput {
   metadata: components["schemas"]["AudioUploadMetadata"];
 }
 
+export interface AudioBulkUploadFile {
+  file: Blob;
+  filename: string;
+}
+
+export interface AudioBulkUploadInput {
+  files: AudioBulkUploadFile[];
+  metadata?: {
+    defaults?: Partial<components["schemas"]["AudioUploadMetadata"]>;
+    items?: Array<Partial<components["schemas"]["AudioUploadMetadata"]>>;
+  };
+}
+
+export type PronunciationTermKey = OperationQuery<"deleteTTSPronunciationTerm">;
+
 type Query = Record<string, string | number | boolean | undefined>;
+const MAX_AUDIO_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_BULK_UPLOAD_FILES = 5;
+const MAX_BULK_RAW_UPLOAD_BYTES = 125 * 1024 * 1024;
 type InternalRequestOptions = RequestOptions & {
   idempotencyKey?: string | undefined;
   query?: Query | undefined;
@@ -93,8 +111,11 @@ export class PitchClient {
 
     this.audio = {
       list: (query?: Query, options?: RequestOptions) => this.request<"listAudioAssets">("GET", "/v1/audio", undefined, { ...options, query }),
+      get: (id: string, options?: RequestOptions) => this.request<"getAudioAsset">("GET", `/v1/audio/${segment(id)}`, undefined, options),
       upload: (input: AudioUploadInput, options?: RequestOptions) => {
         if (!(input.file instanceof Blob)) throw new TypeError("audio upload file must be a Blob");
+        if (input.file.size === 0) throw new RangeError("audio upload file must not be empty");
+        if (input.file.size > MAX_AUDIO_UPLOAD_BYTES) throw new RangeError("audio upload file must not exceed 25 MiB");
         if (!input.filename.trim()) throw new TypeError("audio upload filename must not be empty");
         if (!input.metadata.name.trim()) throw new TypeError("audio upload metadata.name must not be empty");
         const form = new FormData();
@@ -102,10 +123,54 @@ export class PitchClient {
         form.append("metadata", JSON.stringify(input.metadata));
         return this.request<"uploadAudioAsset">("POST", "/v1/audio", form, options);
       },
+      bulkUpload: (input: AudioBulkUploadInput, options?: RequestOptions) => {
+        if (input.files.length === 0) throw new TypeError("audio bulk upload requires at least one file");
+        if (input.files.length > MAX_BULK_UPLOAD_FILES) throw new RangeError("audio bulk upload supports at most 5 files");
+        let rawUploadBytes = 0;
+        for (const item of input.files) {
+          if (!(item.file instanceof Blob)) throw new TypeError("audio bulk upload files must be Blob instances");
+          if (item.file.size === 0) throw new RangeError("audio bulk upload files must not be empty");
+          if (item.file.size > MAX_AUDIO_UPLOAD_BYTES) throw new RangeError("audio bulk upload files must not exceed 25 MiB each");
+          if (!item.filename.trim()) throw new TypeError("audio bulk upload filenames must not be empty");
+          rawUploadBytes += item.file.size;
+        }
+        if (rawUploadBytes > MAX_BULK_RAW_UPLOAD_BYTES) throw new RangeError("audio bulk upload raw file bytes must not exceed 125 MiB");
+        for (const metadata of [input.metadata?.defaults, ...(input.metadata?.items ?? [])]) {
+          if (metadata?.name !== undefined && !metadata.name.trim()) throw new TypeError("audio bulk upload metadata names must not be empty");
+        }
+        const form = new FormData();
+        for (const item of input.files) form.append("files", item.file, item.filename);
+        form.append("metadata", JSON.stringify(input.metadata ?? {}));
+        return this.request<"bulkUploadAudioAssets">("POST", "/v1/audio/bulk-upload", form, options);
+      },
       createFromTTS: (body: JSONBody<"/v1/audio/from-tts", "post">, options?: RequestOptions) => this.request<"createAudioFromTTS">("POST", "/v1/audio/from-tts", body, options),
+      createFromTTSBatch: (body: JSONBody<"/v1/audio/from-tts-batch", "post">, options?: RequestOptions) => this.request<"createAudioFromTTSBatch">("POST", "/v1/audio/from-tts-batch", body, options),
+      update: (id: string, body: JSONBody<"/v1/audio/{id}", "patch">, options?: RequestOptions) => this.request<"updateAudioAsset">("PATCH", `/v1/audio/${segment(id)}`, body, options),
+      delete: (id: string, options?: RequestOptions) => this.request<"deleteAudioAsset">("DELETE", `/v1/audio/${segment(id)}`, undefined, options),
+      download: (id: string, options?: RequestOptions) => this.request<"getAudioDownload">("GET", `/v1/audio/${segment(id)}/download`, undefined, options),
+      move: (id: string, body: JSONBody<"/v1/audio/{id}/move", "post">, options?: RequestOptions) => this.request<"moveAudioAsset">("POST", `/v1/audio/${segment(id)}/move`, body, options),
+      copy: (id: string, body: JSONBody<"/v1/audio/{id}/copy", "post">, options?: RequestOptions) => this.request<"copyAudioAsset">("POST", `/v1/audio/${segment(id)}/copy`, body, options),
+      getEditContext: (id: string, options?: RequestOptions) => this.request<"getAudioTTSEditContext">("GET", `/v1/audio/${segment(id)}/edit-context`, undefined, options),
+      createTTSRevision: (id: string, body: JSONBody<"/v1/audio/{id}/tts-revisions", "post">, options?: RequestOptions) => this.request<"createAudioTTSRevision">("POST", `/v1/audio/${segment(id)}/tts-revisions`, body, options),
+      folders: {
+        list: (query?: Query, options?: RequestOptions) => this.request<"listAudioFolders">("GET", "/v1/audio/folders", undefined, { ...options, query }),
+        tree: (query?: Query, options?: RequestOptions) => this.request<"listAudioFolderTree">("GET", "/v1/audio/folders/tree", undefined, { ...options, query }),
+        create: (body: JSONBody<"/v1/audio/folders", "post">, options?: RequestOptions) => this.request<"createAudioFolder">("POST", "/v1/audio/folders", body, options),
+        rename: (id: string, body: JSONBody<"/v1/audio/folders/{folderId}", "patch">, options?: RequestOptions) => this.request<"renameAudioFolder">("PATCH", `/v1/audio/folders/${segment(id)}`, body, options),
+        delete: (id: string, options?: RequestOptions) => this.request<"deleteAudioFolder">("DELETE", `/v1/audio/folders/${segment(id)}`, undefined, options),
+      },
     };
     this.tts = {
+      compose: (body: JSONBody<"/v1/tts/compose", "post">, options?: RequestOptions) => this.request<"composeTTS">("POST", "/v1/tts/compose", body, options),
+      composeBatch: (body: JSONBody<"/v1/tts/compose-batch", "post">, options?: RequestOptions) => this.request<"composeTTSBatch">("POST", "/v1/tts/compose-batch", body, options),
       preview: (body: JSONBody<"/v1/tts/generate", "post">, options?: RequestOptions) => this.request<"generateTTSPreview">("POST", "/v1/tts/generate", body, options),
+      previewBatch: (body: JSONBody<"/v1/tts/generate-batch", "post">, options?: RequestOptions) => this.request<"generateTTSPreviewBatch">("POST", "/v1/tts/generate-batch", body, options),
+      pronunciation: {
+        get: (options?: RequestOptions) => this.request<"getTTSPronunciation">("GET", "/v1/tts/pronunciation", undefined, options),
+        upsertTerm: (body: JSONBody<"/v1/tts/pronunciation/terms", "put">, options?: RequestOptions) => this.request<"upsertTTSPronunciationTerm">("PUT", "/v1/tts/pronunciation/terms", body, options),
+        deleteTerm: ({ language, word }: PronunciationTermKey, options?: RequestOptions) => this.request<"deleteTTSPronunciationTerm">("DELETE", "/v1/tts/pronunciation/terms", undefined, { ...options, query: { language, word } }),
+        applyTemplate: (industry: string, options?: RequestOptions) => this.request<"applyTTSPronunciationTemplate">("POST", `/v1/tts/pronunciation/templates/${segment(industry)}/apply`, undefined, options),
+      },
     };
     this.devices = {
       list: (query?: Query, options?: RequestOptions) => this.request<"listDevices">("GET", "/v1/devices", undefined, { ...options, query }),

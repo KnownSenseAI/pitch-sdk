@@ -6,7 +6,10 @@ import type { components } from "../src/generated/openapi.js";
 
 type PublishReturnIsGenerated = ReturnType<PitchClient["events"]["publish"]> extends Promise<components["schemas"]["PartnerEventPublishResponse"]> ? true : never;
 type DeviceReturnIsGenerated = ReturnType<PitchClient["devices"]["get"]> extends Promise<components["schemas"]["Device"]> ? true : never;
-const typedSuccessAssertions: [PublishReturnIsGenerated, DeviceReturnIsGenerated] = [true, true];
+type FolderReturnIsGenerated = ReturnType<PitchClient["audio"]["folders"]["create"]> extends Promise<components["schemas"]["AudioFolder"]> ? true : never;
+type PronunciationReturnIsGenerated = ReturnType<PitchClient["tts"]["pronunciation"]["get"]> extends Promise<components["schemas"]["TTSPronunciationSummary"]> ? true : never;
+type EditContextReturnIsGenerated = ReturnType<PitchClient["audio"]["getEditContext"]> extends Promise<components["schemas"]["AudioTTSEditContext"]> ? true : never;
+const typedSuccessAssertions: [PublishReturnIsGenerated, DeviceReturnIsGenerated, FolderReturnIsGenerated, PronunciationReturnIsGenerated, EditContextReturnIsGenerated] = [true, true, true, true, true];
 
 function setup(response = new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } })) {
   const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(response);
@@ -14,8 +17,14 @@ function setup(response = new Response(JSON.stringify({ ok: true }), { status: 2
   return { client, fetch };
 }
 
+function blobWithReportedSize(size: number): Blob {
+  const blob = new Blob(["test"]);
+  Object.defineProperty(blob, "size", { value: size });
+  return blob;
+}
+
 describe("PitchClient", () => {
-  it("keeps generated success response types", () => expect(typedSuccessAssertions).toEqual([true, true]));
+  it("keeps generated success response types", () => expect(typedSuccessAssertions).toEqual([true, true, true, true, true]));
 
   it("rejects insecure non-local base URLs", () => {
     expect(() => new PitchClient({ baseUrl: "http://example.com", apiKey: "key" })).toThrow(/HTTPS/);
@@ -139,6 +148,110 @@ describe("PitchClient", () => {
     expect(JSON.parse(String(form.get("metadata")))).toEqual({ name: "Passenger notice", lifecycle: "permanent" });
   });
 
+  it("bulk uploads repeated files and one JSON metadata part without overriding the boundary", async () => {
+    const { client, fetch } = setup(new Response(JSON.stringify({ assets: [], errors: [], total: 2, succeeded: 2, failed: 0 }), { status: 207 }));
+    const result = await client.audio.bulkUpload({
+      files: [
+        { file: new Blob(["one"]), filename: "one.ogg" },
+        { file: new Blob(["two"]), filename: "two.ogg" },
+      ],
+      metadata: { defaults: { language: "en" }, items: [{ name: "One" }, { name: "Two" }] },
+    });
+    expect(result).toMatchObject({ total: 2 });
+    const init = fetch.mock.calls[0]![1];
+    expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+    const form = init?.body as FormData;
+    expect(form.getAll("files")).toHaveLength(2);
+    expect(JSON.parse(String(form.get("metadata")))).toEqual({ defaults: { language: "en" }, items: [{ name: "One" }, { name: "Two" }] });
+  });
+
+  it("bulk uploads one empty JSON metadata part when overrides are omitted", async () => {
+    const { client, fetch } = setup(new Response(JSON.stringify({ assets: [], errors: [], total: 1, succeeded: 1, failed: 0 }), { status: 207 }));
+    await client.audio.bulkUpload({
+      files: [{ file: new Blob(["one"]), filename: "one.ogg" }],
+    });
+    const init = fetch.mock.calls[0]![1];
+    expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+    const form = init?.body as FormData;
+    expect(form.getAll("metadata")).toHaveLength(1);
+    expect(JSON.parse(String(form.get("metadata")))).toEqual({});
+  });
+
+  it("rejects zero-byte single and bulk upload files before fetch", () => {
+    const { client, fetch } = setup();
+    expect(() => client.audio.upload({
+      file: new Blob([]),
+      filename: "empty.ogg",
+      metadata: { name: "Empty", lifecycle: "permanent", source: "upload" },
+    })).toThrow(/must not be empty/);
+    expect(() => client.audio.bulkUpload({
+      files: [{ file: new Blob([]), filename: "empty.ogg" }],
+    })).toThrow(/must not be empty/);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects single and bulk file items over 25 MiB without allocating them", () => {
+    const { client, fetch } = setup();
+    const oversized = blobWithReportedSize((25 * 1024 * 1024) + 1);
+    expect(() => client.audio.upload({
+      file: oversized,
+      filename: "large.ogg",
+      metadata: { name: "Large", lifecycle: "permanent", source: "upload" },
+    })).toThrow(/must not exceed 25 MiB/);
+    expect(() => client.audio.bulkUpload({
+      files: [{ file: oversized, filename: "large.ogg" }],
+    })).toThrow(/must not exceed 25 MiB each/);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects bulk uploads with more than five files", () => {
+    const { client, fetch } = setup();
+    expect(() => client.audio.bulkUpload({
+      files: Array.from({ length: 6 }, (_, index) => ({ file: new Blob(["x"]), filename: `${index}.ogg` })),
+    })).toThrow(/at most 5 files/);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("accepts five bulk files reported at the 125 MiB aggregate boundary without allocating them", async () => {
+    const { client, fetch } = setup(new Response(JSON.stringify({ assets: [], errors: [], total: 5, succeeded: 5, failed: 0 }), { status: 201 }));
+    await client.audio.bulkUpload({
+      files: Array.from({ length: 5 }, (_, index) => ({
+        file: blobWithReportedSize(25 * 1024 * 1024),
+        filename: `${index}.ogg`,
+      })),
+    });
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(((fetch.mock.calls[0]![1]?.body) as FormData).getAll("files")).toHaveLength(5);
+  });
+
+  it("validates upload files and names before fetch", () => {
+    const { client, fetch } = setup();
+    expect(() => client.audio.upload({ file: {} as Blob, filename: "x.ogg", metadata: { name: "X" } })).toThrow(/Blob/);
+    expect(() => client.audio.bulkUpload({ files: [{ file: new Blob(["x"]), filename: " " }] })).toThrow(/filenames/);
+    expect(() => client.audio.bulkUpload({ files: [{ file: new Blob(["x"]), filename: "x.ogg" }], metadata: { items: [{ name: " " }] } })).toThrow(/names/);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("encodes folder, asset, template, and pronunciation values", async () => {
+    const { client, fetch } = setup(new Response(null, { status: 204 }));
+    await client.audio.folders.rename("folder/one", { name: "Renamed" });
+    await client.audio.get("asset/one");
+    await client.tts.pronunciation.deleteTerm({ language: "en IN", word: "A&B" });
+    await client.tts.pronunciation.applyTemplate("public transport/rail");
+    expect(String(fetch.mock.calls[0]![0])).toContain("/v1/audio/folders/folder%2Fone");
+    expect(String(fetch.mock.calls[1]![0])).toContain("/v1/audio/asset%2Fone");
+    const pronunciationURL = new URL(String(fetch.mock.calls[2]![0]));
+    expect(pronunciationURL.searchParams.get("language")).toBe("en IN");
+    expect(pronunciationURL.searchParams.get("word")).toBe("A&B");
+    expect(String(fetch.mock.calls[3]![0])).toContain("public%20transport%2Frail/apply");
+  });
+
+  it("treats empty 204 delete responses as successful", async () => {
+    const { client } = setup(new Response(null, { status: 204 }));
+    await expect(client.audio.delete("asset-1")).resolves.toBeUndefined();
+    await expect(client.audio.folders.delete("folder-1")).resolves.toBeUndefined();
+  });
+
   it("requires caller idempotency keys for unsafe creates", () => {
     const { client } = setup();
     expect(() => client.controls.create({} as never, "")).toThrow(/Idempotency/);
@@ -179,10 +292,32 @@ describe("PitchClient", () => {
 
   it("maps every public wrapper to its frozen method and route", async () => {
     const calls: Array<[string, string, (client: PitchClient) => Promise<unknown>, string | undefined]> = [
+      ["POST", "/v1/tts/compose", c => c.tts.compose({} as never), undefined],
+      ["POST", "/v1/tts/compose-batch", c => c.tts.composeBatch({} as never), undefined],
       ["POST", "/v1/tts/generate", c => c.tts.preview({ text: "Next stop", language: "en" }), undefined],
+      ["POST", "/v1/tts/generate-batch", c => c.tts.previewBatch({} as never), undefined],
+      ["GET", "/v1/tts/pronunciation", c => c.tts.pronunciation.get(), undefined],
+      ["PUT", "/v1/tts/pronunciation/terms", c => c.tts.pronunciation.upsertTerm({ language: "en", word: "PITCH", pronunciation: "pitch" }), undefined],
+      ["DELETE", "/v1/tts/pronunciation/terms", c => c.tts.pronunciation.deleteTerm({ language: "en", word: "PITCH" }), undefined],
+      ["POST", "/v1/tts/pronunciation/templates/transit/apply", c => c.tts.pronunciation.applyTemplate("transit"), undefined],
       ["GET", "/v1/audio", c => c.audio.list(), undefined],
+      ["GET", "/v1/audio/a1", c => c.audio.get("a1"), undefined],
       ["POST", "/v1/audio", c => c.audio.upload({ file: new Blob(["audio"]), filename: "audio.ogg", metadata: { name: "Audio" } }), undefined],
+      ["POST", "/v1/audio/bulk-upload", c => c.audio.bulkUpload({ files: [{ file: new Blob(["audio"]), filename: "audio.ogg" }] }), undefined],
       ["POST", "/v1/audio/from-tts", c => c.audio.createFromTTS({ text: "Next stop", language: "en" }), undefined],
+      ["POST", "/v1/audio/from-tts-batch", c => c.audio.createFromTTSBatch({} as never), undefined],
+      ["PATCH", "/v1/audio/a1", c => c.audio.update("a1", { name: "Updated" }), undefined],
+      ["DELETE", "/v1/audio/a1", c => c.audio.delete("a1"), undefined],
+      ["GET", "/v1/audio/a1/download", c => c.audio.download("a1"), undefined],
+      ["POST", "/v1/audio/a1/move", c => c.audio.move("a1", {} as never), undefined],
+      ["POST", "/v1/audio/a1/copy", c => c.audio.copy("a1", {} as never), undefined],
+      ["GET", "/v1/audio/a1/edit-context", c => c.audio.getEditContext("a1"), undefined],
+      ["POST", "/v1/audio/a1/tts-revisions", c => c.audio.createTTSRevision("a1", {} as never), undefined],
+      ["GET", "/v1/audio/folders", c => c.audio.folders.list(), undefined],
+      ["GET", "/v1/audio/folders/tree", c => c.audio.folders.tree(), undefined],
+      ["POST", "/v1/audio/folders", c => c.audio.folders.create({ name: "Folder" }), undefined],
+      ["PATCH", "/v1/audio/folders/f1", c => c.audio.folders.rename("f1", { name: "Renamed" }), undefined],
+      ["DELETE", "/v1/audio/folders/f1", c => c.audio.folders.delete("f1"), undefined],
       ["GET", "/v1/devices", c => c.devices.list(), undefined],
       ["GET", "/v1/devices/dev%2F1", c => c.devices.get("dev/1"), undefined],
       ["POST", "/v1/targets/preflight", c => c.devices.preflightTargets({} as never), undefined],

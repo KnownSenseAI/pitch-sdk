@@ -106,6 +106,19 @@ function sanitizePublicComponents(components) {
   keepProperties(schemas.AudioUploadMetadata, [
     "name", "folder_id", "language", "tags", "lifecycle", "source",
   ]);
+  delete schemas.AudioUploadMetadata?.properties?.lifecycle?.default;
+  delete schemas.AudioUploadMetadata?.properties?.source?.default;
+  keepProperties(schemas.AudioFolder, [
+    "id", "parent_id", "name", "depth", "created_at", "updated_at", "deleted_at",
+  ]);
+  removeProperties(schemas.TTSComposeResponse, [
+    "cache_key", "prompt_version", "provider", "model", "tokens_used",
+  ]);
+  removeProperties(schemas.TTSPronunciationDictionary, ["dict_id", "last_sync_error"]);
+  removeProperties(schemas.AudioTTSRevisionRequest, ["dict_id", "spec"]);
+  removeProperties(schemas.AudioTTSEditContext, ["spec"]);
+  removeProperties(schemas.AudioAssetRevisionSummary, ["content_key"]);
+  removeProperties(schemas.AudioAssetUsageImpact, ["resync_error"]);
   keepProperties(schemas.DecisionPreviewCandidateDevice, [
     "id", "known", "supports_offline_schedule", "supports_offline_schedule_known",
     "max_audio_bytes", "max_duration_ms",
@@ -127,6 +140,7 @@ function sanitizePublicComponents(components) {
       (value) => !["geo_triggered", "sensor_triggered", "subscription", "interactive"].includes(value),
     );
   }
+  delete schemas.TriggerConfig?.properties?.mode?.default;
 
   if (schemas.ErrorResponse?.properties?.error?.properties?.details) {
     schemas.ErrorResponse.properties.error.properties.details.example = {

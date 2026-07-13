@@ -1,29 +1,38 @@
 # Audio library and text-to-speech
 
-Announcements ultimately need playable audio. PITCH represents reusable audio as a customer-owned library asset with a stable `asset_id`. Developers use that identifier when creating instant, scheduled, repetitive, event-driven, or chained announcements.
-
-Assets can come from:
-
-- an uploaded audio file;
-- reviewed text saved as generated speech;
-- a recording or asset created in the PITCH Console.
-
-All of these appear in the same customer-scoped audio library.
+PITCH stores reusable audio as customer-owned assets with stable `asset_id` values. Use names, tags, language, folders, and search for operator discovery; persist the selected ID in your application before creating announcements.
 
 ## Required API-key scopes
 
-- `audio:write` lists, uploads, and creates audio-library assets.
-- `tts:compose` generates temporary speech previews.
-- `announce:write` uses the selected asset in announcements.
+- `audio:read` lists folders and assets, reads metadata and edit context, and obtains download links.
+- `audio:write` creates and changes folders or assets, including uploads and generated speech.
+- `tts:compose` composes and previews speech and manages the pronunciation dictionary.
+- `announce:write` is only needed when the integration also creates or changes announcements.
 
-Use a server-side API key containing only the scopes required by your integration.
+Read-only inventory jobs should receive `audio:read`, not a write scope. See [Production TTS](/guides/production-tts) for intent composition, approval, pronunciation, and multilingual batch workflows.
 
-## Find the audio to play
+## Organize folders
 
-List assets with optional name, language, source, and folder filters:
+Folders support typed list, tree, create, rename, and delete operations:
+
+```ts
+const children = await pitch.audio.folders.list({ parent_id: "root", limit: 100 });
+const campaigns = children.folders.find((folder) => folder.name === "Campaigns")
+  ?? await pitch.audio.folders.create({ name: "Campaigns", parent_id: "root" });
+
+const tree = await pitch.audio.folders.tree({ max_depth: 4 });
+await pitch.audio.folders.rename(campaigns.id, { name: "Current campaigns" });
+// Delete only after your own workflow confirms the folder is no longer required.
+// await pitch.audio.folders.delete(campaigns.id);
+```
+
+Folder names are discovery labels and can change. Store `folder.id` in configuration after an operator selects or creates the folder.
+
+## Find assets
 
 ```ts
 const page = await pitch.audio.list({
+  folder_id: "folder-123",
   search: "platform safety",
   language: "hi",
   source: "tts",
@@ -35,25 +44,9 @@ for (const asset of page.assets) {
 }
 ```
 
-Use `next_cursor` as `cursor` to request another page. Search is for discovery and administration; it should not be the runtime identity of an announcement. Once an operator or configuration workflow selects an asset, store its stable `id` with your own rule, route, stop, template, or business configuration.
+Use `next_cursor` to request another page. Do not select the first fuzzy result every time an event occurs: names are editable and may not be unique. Persist the reviewed `asset_id` with your route, template, stop, or business rule.
 
-For example:
-
-```ts
-const stopAnnouncements = {
-  MG_ROAD: "asset-mg-road-hi",
-  CENTRAL_STATION: "asset-central-station-hi",
-};
-
-const assetId = stopAnnouncements[event.stop_id];
-if (!assetId) throw new Error("No approved audio configured for this stop");
-```
-
-Do not select the first fuzzy name-search result every time a business event occurs. Names are editable and may not be unique. Asset IDs are the supported announcement reference.
-
-## Upload an existing audio file
-
-The Node.js SDK accepts a `Blob`, filename, and library metadata. PITCH validates and prepares the audio for supported playback.
+## Upload into a folder
 
 ```ts
 import { readFile } from "node:fs/promises";
@@ -64,83 +57,58 @@ const asset = await pitch.audio.upload({
   filename: "platform-safety.mp3",
   metadata: {
     name: "Platform safety",
+    folder_id: "folder-123",
     language: "en",
     tags: ["safety", "platform"],
     lifecycle: "permanent",
   },
 });
-
-console.log(asset.id);
 ```
 
-Use permanent assets for durable schedules. Upload limits, supported formats, duration limits, storage quota, and plan limits are enforced by the service and returned as structured `PitchAPIError` codes.
+The SDK rejects empty files and files larger than 25 MiB before sending them. PITCH server limits remain authoritative and may reject a request after additional format, duration, storage-quota, or plan checks. Uploaded media content is inspected; a filename extension or declared `Blob` MIME type is not trusted as proof of format.
 
-## Preview generated speech
+## Bulk upload
 
-Generate a temporary preview from reviewed text:
+One multipart request can carry repeated files plus one metadata document. Results can contain per-item successes and failures, so inspect both arrays.
 
-```ts
-const speech = {
-  text: "The next stop is Central Station.",
-  language: "en",
-  tone: "clear",
-  speed: 1,
-};
-
-const preview = await pitch.tts.preview(speech);
-console.log(preview.audio_url, preview.duration_ms);
-```
-
-The preview URL is temporary and is not an `asset_id`. Preview generation consumes character allowance and is rate-limited. Present it to the responsible operator or apply your own approval process before saving the speech.
-
-## Save approved speech to the library
-
-After approval, create the durable asset:
+Bulk requests contain one to five files, each limited to 25 MiB, so the SDK constraints imply at most 125 MiB of raw file payload. Independently, the PITCH service authoritatively caps the complete multipart request at 126 MiB including multipart overhead.
 
 ```ts
-const asset = await pitch.audio.createFromTTS({
-  ...speech,
-  name: "Central Station approach",
-  folder_id: "root",
+const result = await pitch.audio.bulkUpload({
+  files: [
+    { file: new Blob([welcomeBytes]), filename: "welcome.mp3" },
+    { file: new Blob([safetyBytes]), filename: "safety.mp3" },
+  ],
+  metadata: {
+    defaults: { folder_id: "folder-123", lifecycle: "permanent", language: "en" },
+    items: [{ name: "Welcome" }, { name: "Safety reminder" }],
+  },
 });
 
-console.log(asset.id);
+console.log(result.assets.map((item) => item.id), result.errors);
 ```
 
-The saved asset now behaves like an uploaded asset and can be reused without regenerating speech for every announcement.
-
-## Trigger the selected asset
-
-For an instant announcement, pass the asset ID directly:
+## Move, copy, and update
 
 ```ts
-await pitch.announcements.announceInstant({
-  name: "Central Station approach",
-  device_id: "bus-123",
-  output_id: "main",
-  asset_id: asset.id,
-  priority: 1,
-}, "trip-8472-central-station");
+await pitch.audio.update(asset.id, { name: "Platform safety v2", tags: ["approved"] });
+await pitch.audio.move(asset.id, { folder_id: "folder-approved" });
+const localizedCopy = await pitch.audio.copy(asset.id, {
+  folder_id: "folder-localization",
+  name: "Platform safety translation draft",
+});
+console.log(localizedCopy.id);
 ```
 
-For durable definitions, use asset content:
-
-```ts
-const content = {
-  type: "asset" as const,
-  asset_id: asset.id,
-};
-```
-
-Pass that `content` to scheduled, repetitive, conditional, or event-driven definitions. A chained announcement uses an ordered array of these asset references.
+Deletion and folder deletion are destructive. Keep them behind an explicit administrative decision and review usage first.
 
 ## Reliability guidance
 
-- Persist the returned asset ID instead of regenerating speech for every playback.
-- Treat TTS preview and asset creation as billable, rate-limited write operations.
-- The SDK does not automatically retry. Audio upload and TTS asset creation currently have no idempotency-key contract, so do not blindly repeat them after an ambiguous timeout; search the library for the saved name before deciding to create another asset.
-- Keep approval, language, route, stop, and business mappings in your application or configuration system.
-- Use library asset tags and language for discovery, not as a substitute for a stored asset ID.
-- Before activating a durable schedule, preview it with the final asset so PITCH can validate duration, device readiness, and conflicts.
+- Keep API keys in server-side secret storage and perform uploads only from trusted server code.
+- Treat `asset_id` and `folder_id` as exact opaque identifiers. Persist them unchanged; use editable names, tags, and search only for discovery.
+- Upload and generated-audio writes can consume quota and do not accept idempotency keys. After an ambiguous timeout, inspect the target folder before creating a duplicate.
+- Treat server limits as authoritative and handle structured `PitchAPIError` codes for size, format, duration, quota, and rate-limit failures.
+- Use permanent assets for durable schedules and test a representative device before rollout.
+- Store the final `asset_id` instead of regenerating speech for every playback.
 
-See the runnable [`audio-library.ts`](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/audio-library.ts), [`upload-audio-asset.ts`](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/upload-audio-asset.ts), and [`tts-audio-library.ts`](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/tts-audio-library.ts) examples.
+The runnable [folder workflow](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/audio-folder-workflow.ts) creates or finds an exact child folder, uploads a local file, and prints stable IDs. The [audio discovery](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/audio-library.ts), [upload](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/upload-audio-asset.ts), and [TTS approval](https://github.com/KnownSenseAI/pitch-sdk/blob/main/examples/tts-audio-library.ts) examples cover the related flows.

@@ -28,6 +28,7 @@ export default defineConfig({
         text: "Product guides",
         items: [
           { text: "Audio library and TTS", link: "/guides/audio-library-and-tts" },
+          { text: "Production TTS", link: "/guides/production-tts" },
           { text: "Instant announcements", link: "/guides/instant-announcements" },
           { text: "Scheduled announcements", link: "/guides/scheduled-announcements" },
           { text: "Repetitive announcements", link: "/guides/repetitive-announcements" },

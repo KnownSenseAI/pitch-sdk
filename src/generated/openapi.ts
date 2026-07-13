@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/v1/tts/compose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compose TTS script
+         * @description Converts a business intent into reviewable speakable text and supported voice controls. The response includes validation issues and warnings so callers can approve text before synthesis. This non-idempotent composition request is not retried by the SDK.
+         */
+        post: operations["composeTTS"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tts/generate": {
         parameters: {
             query?: never;
@@ -24,6 +44,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tts/compose-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compose multilingual TTS scripts
+         * @description Adapts one reviewed intent into speakable scripts for up to five languages. Each returned item must be reviewed independently before preview or save. This non-idempotent composition request is not retried by the SDK.
+         */
+        post: operations["composeTTSBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tts/generate-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate multilingual TTS previews
+         * @description Synthesizes up to five reviewed scripts as billable previews. Per-item failures are returned alongside successful items; this non-idempotent request is not retried by the SDK.
+         */
+        post: operations["generateTTSPreviewBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tts/pronunciation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get pronunciation preferences
+         * @description Returns customer-managed pronunciation terms, available templates, and enabled-term limits. The response omits internal synchronization details.
+         */
+        get: operations["getTTSPronunciation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tts/pronunciation/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add or update a pronunciation term
+         * @description Saves one customer-reviewed pronunciation term and returns the updated summary. This non-idempotent write is not retried by the SDK.
+         */
+        put: operations["upsertTTSPronunciationTerm"];
+        post?: never;
+        /**
+         * Delete a pronunciation term
+         * @description Deletes one term selected by exact language and word query values and returns the updated summary. This non-idempotent write is not retried by the SDK.
+         */
+        delete: operations["deleteTTSPronunciationTerm"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tts/pronunciation/templates/{industry}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply an approved pronunciation template
+         * @description Applies an available template within the enabled-term limit and returns inserted and skipped counts. This non-idempotent write is not retried by the SDK.
+         */
+        post: operations["applyTTSPronunciationTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/audio": {
         parameters: {
             query?: never;
@@ -33,13 +157,13 @@ export interface paths {
         };
         /**
          * List audio assets
-         * @description Lists customer-owned audio assets. Requires the audio:write API-key scope. Omit folder_id to list all assets, use folder_id=root for library-root assets, or pass a folder id for one folder.
+         * @description Lists customer-owned audio assets. Requires the audio:read API-key scope. Omit folder_id to list all assets, use folder_id=root for library-root assets, or pass a folder id for one folder.
          */
         get: operations["listAudioAssets"];
         put?: never;
         /**
          * Upload audio asset
-         * @description Uploads one audio file and saves it as a customer-owned library asset. Requires the audio:write API-key scope.
+         * @description Uploads one non-empty audio file of at most 25 MiB (26,214,400 bytes) and saves it as a customer-owned library asset. The complete multipart request is capped at 26 MiB. Requires the audio:write API-key scope. Metadata is provided as a JSON string in the metadata multipart field.
          */
         post: operations["uploadAudioAsset"];
         delete?: never;
@@ -62,6 +186,242 @@ export interface paths {
          * @description Generates reviewed text as speech and saves it directly into the customer audio library, optionally inside a folder. Requires the audio:write API-key scope.
          */
         post: operations["createAudioFromTTS"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audio folders
+         * @description Returns direct child folders under the requested parent plus breadcrumbs for the selected parent. Use parent_id=root or omit parent_id for root folders.
+         */
+        get: operations["listAudioFolders"];
+        put?: never;
+        /**
+         * Create audio folder
+         * @description Creates a customer audio-library folder. Sibling names are unique case-insensitively within the same parent. This non-idempotent write is not retried by the SDK.
+         */
+        post: operations["createAudioFolder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/folders/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audio folder tree
+         * @description Returns up to 500 active folders for target pickers. Use search to find folders outside the first page when truncated is true.
+         */
+        get: operations["listAudioFolderTree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/folders/{folderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete audio folder
+         * @description Deletes an empty customer audio folder. Folders containing child folders or audio assets return 409. This non-idempotent write is not retried by the SDK.
+         */
+        delete: operations["deleteAudioFolder"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename audio folder
+         * @description Renames an existing customer audio folder. Moving folders is not supported. This non-idempotent write is not retried by the SDK.
+         */
+        patch: operations["renameAudioFolder"];
+        trace?: never;
+    };
+    "/v1/audio/from-tts-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save multilingual TTS assets
+         * @description Saves up to five billable audio assets and optionally one merged multilingual asset with a configurable silence gap. A 207 response reports partial success. This non-idempotent write is not retried by the SDK.
+         */
+        post: operations["createAudioFromTTSBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move audio asset
+         * @description Changes only the folder reference for an audio asset; schedules and playback content are unchanged. This non-idempotent write is not retried by the SDK.
+         */
+        post: operations["moveAudioAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy audio asset
+         * @description Creates a new library asset in the target folder with a new stable asset id while reusing the approved source audio. This non-idempotent write is not retried by the SDK.
+         */
+        post: operations["copyAudioAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get audio asset
+         * @description Returns one customer audio asset by stable asset id.
+         */
+        get: operations["getAudioAsset"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete audio asset
+         * @description Deletes an audio asset from the customer library. This non-idempotent write is not retried by the SDK.
+         */
+        delete: operations["deleteAudioAsset"];
+        options?: never;
+        head?: never;
+        /**
+         * Update audio asset metadata
+         * @description Updates customer-facing metadata without replacing the approved audio. This non-idempotent write is not retried by the SDK.
+         */
+        patch: operations["updateAudioAsset"];
+        trace?: never;
+    };
+    "/v1/audio/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get entitled audio download URL
+         * @description Returns a short-lived download URL for the active revision when audio download is enabled for the customer.
+         */
+        get: operations["getAudioDownload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/{id}/edit-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get generated-audio edit context
+         * @description Returns the reviewed text, language, active revision, editable controls, and usage impact for one generated audio asset.
+         */
+        get: operations["getAudioTTSEditContext"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/{id}/tts-revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create generated-audio revision
+         * @description Synthesizes reviewed replacement text and either replaces the active revision behind the stable asset id or creates a deliberate copy. This billable non-idempotent write is not retried by the SDK.
+         */
+        post: operations["createAudioTTSRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/bulk-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk upload audio assets
+         * @description Uploads one to five non-empty audio files in one bounded multipart request. Each file is capped at 25 MiB (26,214,400 bytes), aggregate raw file bytes are capped at 125 MiB, and the complete multipart request is capped at 126 MiB (132,120,576 bytes). A 207 response reports partial success by file index. This non-idempotent write is not retried by the SDK; inspect the library before repeating an ambiguous request.
+         */
+        post: operations["bulkUploadAudioAssets"];
         delete?: never;
         options?: never;
         head?: never;
@@ -291,7 +651,7 @@ export interface paths {
         put?: never;
         /**
          * Publish a partner business event
-         * @description Publishes an application-owned business event for matching event-driven announcements.
+         * @description Publishes a meaningful business event for event-driven announcements. Partners should convert GPS or sensor streams into business events before calling this API; PITCH does not accept raw GPS traces here.
          */
         post: operations["publishEvent"];
         delete?: never;
@@ -309,7 +669,7 @@ export interface paths {
         };
         /**
          * List durable partner event occurrences
-         * @description Returns the authenticated customer's event outcomes and per-output delivery results.
+         * @description Returns customer-scoped event outcomes. Raw GPS traces are not accepted or returned.
          */
         get: operations["listEventOccurrences"];
         put?: never;
@@ -919,8 +1279,6 @@ export interface components {
             window_start?: string;
             /** @example 18:00 */
             window_end?: string;
-            /** @description Days on which a repetitive window may start, using 0 for Sunday through 6 for Saturday. Omit to use every day. For an overnight window, the selected day is the day on which the window starts. */
-            days_of_week?: number[];
             /**
              * @description Partner business-event selector. Required when type is event_driven.
              * @example bus.stop.approaching
@@ -929,148 +1287,6 @@ export interface components {
             /** @description Legacy flat conditional rule; every condition must match. */
             conditions?: components["schemas"]["RuleCondition"][];
             rule?: components["schemas"]["Rule"];
-        };
-        TTSPreviewRequest: {
-            /** @description Reviewed text to synthesize. */
-            text: string;
-            /** @example hi */
-            language: string;
-            /** @description Optional PITCH voice identifier. */
-            voice?: string;
-            /** @description Optional product-level speaking tone. */
-            tone?: string;
-            style_tags?: string[];
-            /**
-             * Format: float
-             * @description Optional speech-speed multiplier.
-             */
-            speed?: number;
-        };
-        TTSSaveRequest: components["schemas"]["TTSPreviewRequest"] & {
-            /** @description Customer-facing audio-library name. PITCH generates a name when omitted. */
-            name?: string;
-            /**
-             * @description Target audio folder id, or root/omitted for the library root.
-             * @example root
-             */
-            folder_id?: string;
-        };
-        TTSPreviewResponse: {
-            /**
-             * Format: uri
-             * @description Temporary preview URL. This is not an audio-library asset id.
-             */
-            audio_url: string;
-            checksum?: string;
-            duration_ms?: number;
-            language?: string;
-            /** @description PITCH voice selected for the preview. */
-            resolved_voice?: string;
-            tone?: string;
-            style_tags?: string[];
-            cache_hit: boolean;
-            /** Format: int64 */
-            chars_used: number;
-            /** Format: int64 */
-            chars_billed?: number;
-            /** Format: int64 */
-            tts_remaining?: number;
-            /** Format: int64 */
-            tts_limit?: number;
-            tts_is_overage?: boolean;
-        };
-        AudioUploadMetadata: {
-            name: string;
-            /**
-             * @description Target audio folder id, or root/omitted for the library root.
-             * @example root
-             */
-            folder_id?: string;
-            /** @example hi */
-            language?: string;
-            tags?: string[];
-            /**
-             * @description Omit for permanent. Durable schedules should reference permanent assets.
-             * @enum {string}
-             */
-            lifecycle?: "permanent" | "temporary";
-            /**
-             * @description Omit for upload.
-             * @enum {string}
-             */
-            source?: "upload" | "recording";
-        };
-        AudioListResponse: {
-            assets: components["schemas"]["AudioAsset"][];
-            /** @description Cursor for the next page when more assets are available. */
-            next_cursor?: string;
-        };
-        AudioAsset: {
-            /** @description Stable asset identifier used in announcement content_config.asset_id. */
-            id: string;
-            name: string;
-            /** @enum {string} */
-            source: "upload" | "tts" | "recording";
-            folder_id?: string;
-            checksum: string;
-            duration_ms: number;
-            /** @example opus */
-            format: string;
-            sample_rate_hz?: number;
-            channels?: number;
-            /** Format: int64 */
-            size_bytes: number;
-            language?: string;
-            tags?: string[];
-            /** @enum {string} */
-            lifecycle: "permanent" | "temporary";
-            usage_count: number;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            updated_at: string;
-        };
-        AnnouncementContentConfig: components["schemas"]["AssetContentConfig"] | components["schemas"]["URLContentConfig"] | components["schemas"]["TTSContentConfig"] | components["schemas"]["ChainedContentConfig"];
-        AssetContentConfig: {
-            /** @enum {string} */
-            type: "asset";
-            /** @description Customer-owned audio library asset identifier. */
-            asset_id: string;
-        };
-        URLContentConfig: {
-            /** @enum {string} */
-            type: "url";
-            /** Format: uri */
-            audio_url: string;
-            /** @description Required for durable scheduled, repetitive, conditional, and event-driven announcements. */
-            checksum?: string;
-            /** @enum {string} */
-            lifecycle?: "permanent" | "temporary";
-        };
-        /** @description Temporary text-to-speech content for instant announcements. Save generated speech to the audio library before using it in a durable schedule. */
-        TTSContentConfig: {
-            /** @enum {string} */
-            type: "tts";
-            tts_request: {
-                text: string;
-                language: string;
-                /** @description Optional PITCH voice identifier. */
-                voice?: string;
-                tone?: string;
-                style_tags?: string[];
-                /** Format: float */
-                speed?: number;
-            } & {
-                [key: string]: unknown;
-            };
-        };
-        /** @description Ordered audio-library assets played by a weekly chained schedule. Omitted chain_gap_ms uses a 2000 millisecond gap; explicit 0 disables the gap. */
-        ChainedContentConfig: {
-            /** @enum {string} */
-            type: "chained";
-            /** @description Pause before every item after the first. Omit for the 2000 millisecond default. */
-            chain_gap_ms?: number;
-            chain_items: components["schemas"]["AssetContentConfig"][];
         };
         /** @description Bounded conditional rule tree. Evaluation is local only; no scripts, regex, or network calls. */
         Rule: {
@@ -1115,7 +1331,9 @@ export interface components {
             /** @description Explicit group target shortcut. */
             group_id?: string;
             /** @description Announcement content configuration, such as an uploaded asset, HTTPS audio, text-to-speech, or chained content. Event-driven announcements require durable playable content; prefer asset_id, and include a checksum for URL content. */
-            content_config: components["schemas"]["AnnouncementContentConfig"];
+            content_config: {
+                [key: string]: unknown;
+            };
             trigger_config?: components["schemas"]["TriggerConfig"];
             priority?: number;
             /** Format: date-time */
@@ -1352,7 +1570,9 @@ export interface components {
             /** @description Existing announcement to ignore when previewing an edit. */
             exclude_announcement_id?: string;
             /** @description Optional content candidate used by decision policies such as duplicate schedule analysis. */
-            content_config?: components["schemas"]["AnnouncementContentConfig"];
+            content_config?: {
+                [key: string]: unknown;
+            };
             /** @default 5 */
             limit: number;
             /**
@@ -1554,6 +1774,7 @@ export interface components {
             type: string;
             /** Format: date-time */
             timestamp: string;
+            /** @description Human-readable context for this delivery event. */
             detail: string;
         };
         Device: {
@@ -1737,6 +1958,467 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        BulkAudioUploadResponse: {
+            assets: components["schemas"]["AudioAsset"][];
+            errors: components["schemas"]["BulkAudioUploadError"][];
+            /** @example 3 */
+            total: number;
+            /** @example 2 */
+            succeeded: number;
+            /** @example 1 */
+            failed: number;
+        };
+        BulkAudioUploadError: {
+            index: number;
+            /** @example broken.wav */
+            filename: string;
+            /** @enum {string} */
+            code: "missing_file" | "read_failed" | "file_too_large" | "missing_name" | "asset_limit_reached" | "storage_quota_exceeded" | "unsupported_format" | "duration_too_long" | "upload_failed";
+            message: string;
+        };
+        AudioAsset: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            source: "upload" | "tts" | "recording";
+            /** @description Audio folder id. Omitted when the asset is in the library root. */
+            folder_id?: string;
+            checksum: string;
+            duration_ms: number;
+            /** @example opus */
+            format: string;
+            /** @example 48000 */
+            sample_rate_hz: number;
+            /** @example 1 */
+            channels: number;
+            /** Format: int64 */
+            size_bytes: number;
+            language?: string;
+            tags?: string[];
+            /** @enum {string} */
+            lifecycle: "permanent" | "temporary";
+            usage_count: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AudioTTSRevisionResult: {
+            /** @enum {string} */
+            mode: "replace" | "copy";
+            asset: components["schemas"]["AudioAsset"];
+            revision: components["schemas"]["AudioAssetRevisionSummary"];
+            changed: boolean;
+            impact: components["schemas"]["AudioAssetUsageImpact"];
+        };
+        AudioAssetUsageImpact: {
+            active_schedules: number;
+            affected_devices: number;
+            affected_device_ids?: string[];
+            group_count?: number;
+            affected_devices_unknown?: boolean;
+            resync_queued: boolean;
+        };
+        AudioAssetRevisionSummary: {
+            revision: number;
+            checksum: string;
+            duration_ms: number;
+        };
+        AudioTTSRevisionRequest: {
+            /** @enum {string} */
+            mode: "replace" | "copy";
+            expected_revision: number;
+            text: string;
+            language: string;
+            name?: string;
+        };
+        AudioTTSEditContext: {
+            asset: components["schemas"]["AudioAsset"];
+            active_revision: number;
+            text?: string;
+            language?: string;
+            name?: string;
+            editable: boolean;
+            reason?: string;
+            impact: components["schemas"]["AudioAssetUsageImpact"];
+        };
+        AudioDownloadResponse: {
+            /** @example asset-1 */
+            asset_id: string;
+            /** @example 1 */
+            revision?: number;
+            /**
+             * Format: uri
+             * @example https://storage.example.com/audio/station-chime.ogg?X-Amz-Expires=900
+             */
+            download_url: string;
+            /**
+             * Format: date-time
+             * @example 2026-07-01T10:15:00Z
+             */
+            expires_at: string;
+            /** @example station-chime-asset-1-r1.ogg */
+            filename: string;
+            /** @example audio/ogg */
+            content_type: string;
+            /**
+             * Format: int64
+             * @example 12345
+             */
+            size_bytes?: number;
+            /** @example 7f83b1657ff1fc53b92dc18148a1d65dfa135b */
+            checksum?: string;
+        };
+        UpdateAudioAssetRequest: {
+            /** @example Platform chime */
+            name?: string;
+            /**
+             * @description Optional BCP 47-ish language code used by the console for filtering and TTS context.
+             * @example hi
+             */
+            language?: string;
+            /**
+             * @example [
+             *       "station",
+             *       "urgent"
+             *     ]
+             */
+            tags?: string[];
+            /** @enum {string} */
+            lifecycle?: "permanent" | "temporary";
+        };
+        CopyAudioAssetRequest: {
+            /**
+             * @description Target folder id, or root to copy the asset to the library root.
+             * @example folder-1
+             */
+            folder_id: string;
+            /**
+             * @description Optional name for the copied asset. Defaults to the source name with " copy" appended.
+             * @example Summer promo copy
+             */
+            name?: string;
+        };
+        MoveAudioAssetRequest: {
+            /**
+             * @description Target folder id, or root to move the asset to the library root.
+             * @example root
+             */
+            folder_id: string;
+        };
+        TTSBatchSaveResponse: {
+            assets: components["schemas"]["AudioAsset"][];
+            merged_asset?: components["schemas"]["AudioAsset"];
+            errors: {
+                [key: string]: unknown;
+            }[];
+        };
+        TTSBatchSaveRequest: {
+            /**
+             * @description Target audio folder id for all saved assets, or root for the library root.
+             * @example root
+             */
+            folder_id?: string;
+            items: (components["schemas"]["TTSPreviewRequest"] & {
+                name: string;
+            })[];
+            merge?: {
+                enabled?: boolean;
+                name?: string;
+                /** @description Silence inserted between language segments in the merged asset. Defaults to 2000 when omitted. */
+                gap_ms?: number;
+                /** @example multi */
+                language?: string;
+            };
+        };
+        TTSPreviewRequest: {
+            text: string;
+            /** @example hi */
+            language: string;
+            /** @description Optional PITCH voice identifier. */
+            voice?: string;
+            /** @description Product feeling used when voice is automatic. */
+            tone?: string;
+            /** @description Additional style hints used for automatic speaker selection. */
+            style_tags?: string[];
+            /**
+             * Format: float
+             * @description Optional speech-speed multiplier.
+             */
+            speed?: number;
+            /** @description Optional client-side review metadata. Renderer uses top-level voice and speed. */
+            spec?: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        AudioFolder: {
+            /** @example folder-1 */
+            id: string;
+            /**
+             * @description Parent folder id. Omitted for root-level folders.
+             * @example parent-folder
+             */
+            parent_id?: string;
+            /** @example Summer promos */
+            name: string;
+            /** @description Folder depth in tree responses. */
+            depth?: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            deleted_at?: string | null;
+        };
+        UpdateAudioFolderRequest: {
+            /** @example Monsoon promos */
+            name: string;
+        };
+        AudioFolderTreeResponse: {
+            folders: components["schemas"]["AudioFolder"][];
+        };
+        CreateAudioFolderRequest: {
+            /** @example Summer promos */
+            name: string;
+            /**
+             * @description Parent folder id, or root/omitted for a root-level folder.
+             * @example root
+             */
+            parent_id?: string;
+        };
+        AudioFolderListResponse: {
+            parent?: components["schemas"]["AudioFolder"];
+            breadcrumbs: components["schemas"]["AudioFolder"][];
+            folders: components["schemas"]["AudioFolder"][];
+            /** @description True when more matching folders exist than the requested limit. */
+            truncated?: boolean;
+        };
+        TTSSaveRequest: components["schemas"]["TTSPreviewRequest"] & ({
+            /** @description Saved asset name. Auto-generated from text when omitted. */
+            name?: string;
+            /**
+             * @description Target audio folder id, or root/omitted for the library root.
+             * @example folder-1
+             */
+            folder_id?: string;
+        } & {
+            [key: string]: unknown;
+        });
+        AudioUploadMetadata: {
+            name: string;
+            /**
+             * @description Target audio folder id, or root/omitted for the library root.
+             * @example folder-1
+             */
+            folder_id?: string;
+            /** @example hi */
+            language?: string;
+            tags?: string[];
+            /** @enum {string} */
+            lifecycle?: "permanent" | "temporary";
+            /** @enum {string} */
+            source?: "upload" | "recording";
+        } & {
+            [key: string]: unknown;
+        };
+        AudioListResponse: {
+            assets: components["schemas"]["AudioAsset"][];
+            total?: number;
+            /** @description Cursor for the next page when more assets are available. */
+            next_cursor?: string;
+        };
+        TTSPronunciationApplyResponse: components["schemas"]["TTSPronunciationSummary"] & {
+            inserted: number;
+            skipped: number;
+        };
+        TTSPronunciationSummary: {
+            terms: components["schemas"]["TTSPronunciationTerm"][];
+            dictionary: components["schemas"]["TTSPronunciationDictionary"];
+            templates: components["schemas"]["TTSPronunciationTemplate"][];
+            enabled_count: number;
+            max_enabled_terms: number;
+        };
+        TTSPronunciationTemplate: {
+            industry: string;
+            label: string;
+            description: string;
+            term_count: number;
+            sample_terms: string[];
+        };
+        TTSPronunciationDictionary: {
+            term_count: number;
+            /** Format: date-time */
+            last_synced_at?: string;
+        };
+        TTSPronunciationTerm: {
+            language: string;
+            word: string;
+            pronunciation: string;
+            enabled: boolean;
+            source: string;
+            industry?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        TTSPronunciationTermRequest: {
+            language: string;
+            word: string;
+            pronunciation: string;
+            enabled?: boolean;
+        };
+        TTSBatchPreviewResponse: {
+            items: ({
+                language: string;
+            } & components["schemas"]["TTSPreviewResponse"])[];
+            errors?: {
+                [key: string]: unknown;
+            }[];
+        };
+        TTSPreviewResponse: {
+            /** Format: uri */
+            audio_url: string;
+            checksum?: string;
+            duration_ms?: number;
+            language?: string;
+            /** @description PITCH voice selected for the preview. */
+            resolved_voice?: string;
+            tone?: string;
+            style_tags?: string[];
+            cache_hit: boolean;
+            /** Format: int64 */
+            chars_used: number;
+            /** Format: int64 */
+            chars_billed?: number;
+            /** Format: int64 */
+            tts_remaining?: number;
+            /** Format: int64 */
+            tts_limit?: number;
+            tts_is_overage?: boolean;
+        };
+        TTSBatchPreviewRequest: {
+            items: components["schemas"]["TTSPreviewRequest"][];
+        };
+        TTSBatchComposeResponse: {
+            items: components["schemas"]["TTSComposeResponse"][];
+            warnings?: string[];
+        };
+        TTSComposeResponse: {
+            /** @example Kripya platform 3 par peeli rekha ke peeche khade rahein. */
+            text: string;
+            /** @example hi */
+            language: string;
+            /** @description Empty string means the resolved PITCH default. */
+            speaker: string;
+            /**
+             * Format: float
+             * @example 1
+             */
+            pace: number;
+            /**
+             * @example [
+             *       "professional",
+             *       "calm"
+             *     ]
+             */
+            style_tags?: string[];
+            rationale?: string;
+            warnings?: string[];
+            /** @description User-visible text ranges that were flagged before text-to-speech, such as emoji or decorative symbols that cannot be spoken. */
+            validation_issues?: components["schemas"]["TTSValidationIssue"][];
+            /** @example platform-3-safety-hi */
+            asset_name_suggestion: string;
+            cache_hit?: boolean;
+            /** Format: int64 */
+            ai_remaining?: number;
+            /** Format: int64 */
+            ai_limit?: number;
+            ai_is_overage?: boolean;
+        };
+        TTSValidationIssue: {
+            /** @example unsupported_tts_symbol */
+            code: string;
+            /**
+             * @example warning
+             * @enum {string}
+             */
+            severity: "warning" | "error";
+            /** @example Emoji and decorative symbols are removed before speech because text-to-speech cannot read them. */
+            message: string;
+            /**
+             * @description The flagged text snippet when available.
+             * @example 🎉
+             */
+            text?: string;
+            /**
+             * @description Zero-based character offset where the flagged text starts.
+             * @example 23
+             */
+            start?: number;
+            /**
+             * @description Zero-based character offset where the flagged text ends.
+             * @example 24
+             */
+            end?: number;
+        };
+        TTSBatchComposeRequest: {
+            prompt: string;
+            languages: string[];
+            speaker?: string;
+            tone?: string;
+            /** Format: float */
+            pace?: number;
+            audience_context?: string;
+            max_chars?: number;
+        };
+        TTSComposeRequest: {
+            /**
+             * @description User-facing request. Prefer this field for new clients.
+             * @example Tell platform 3 passengers to stand behind the yellow line in a calm professional tone.
+             */
+            intent?: string;
+            /** @description Backward-compatible alias for intent used by the console. */
+            prompt?: string;
+            /** @description Backward-compatible alias for intent. */
+            text?: string;
+            /** @example hi */
+            language: string;
+            /** @description Optional PITCH voice identifier. */
+            speaker?: string;
+            /** @description Alias for speaker. */
+            voice?: string;
+            /**
+             * Format: float
+             * @description Optional requested pace. Out-of-range values are normalized by PITCH.
+             */
+            pace?: number;
+            /**
+             * @example [
+             *       "professional",
+             *       "calm"
+             *     ]
+             */
+            style_tags?: string[];
+            /** @example professional */
+            tone?: string;
+            /** @example happy */
+            emotion?: string;
+            /** @example Platform 3 commuters */
+            audience?: string;
+            /** @description Alias for audience. */
+            audience_context?: string;
+            /** @example railway_station */
+            venue_type?: string;
+            /** @example Platform 3 safety */
+            asset_hint?: string;
+            /** @example 500 */
+            max_chars?: number;
+            /** @description Optional small metadata object. Maximum serialized size is 4096 bytes, maximum depth is 4. */
+            context?: {
+                [key: string]: unknown;
+            };
+        };
     };
     responses: {
         /** @description The authenticated customer or client IP exceeded its configured per-minute quota. */
@@ -1839,6 +2521,62 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    composeTTS: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSComposeRequest"];
+            };
+        };
+        responses: {
+            /** @description TTS composition generated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSComposeResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Composer request body exceeds the server cap. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Prompt or generated text violates TTS content policy. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            /** @description Composition was unavailable or returned an invalid response. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     generateTTSPreview: {
         parameters: {
             query?: never;
@@ -1882,6 +2620,212 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    composeTTSBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSBatchComposeRequest"];
+            };
+        };
+        responses: {
+            /** @description Batch TTS composition generated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSBatchComposeResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Batch composition body exceeds the server cap. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description One or more requested scripts violate content policy. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    generateTTSPreviewBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSBatchPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Batch TTS previews generated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSBatchPreviewResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Batch preview body exceeds the server cap. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description One or more preview items fail structured validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getTTSPronunciation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pronunciation preferences and limits. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSPronunciationSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    upsertTTSPronunciationTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSPronunciationTermRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated pronunciation summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSPronunciationSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    deleteTTSPronunciationTerm: {
+        parameters: {
+            query: {
+                language: string;
+                word: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated pronunciation summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSPronunciationSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    applyTTSPronunciationTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                industry: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated pronunciation summary with apply counts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSPronunciationApplyResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             429: components["responses"]["RateLimited"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
@@ -1933,7 +2877,10 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": {
-                    /** Format: binary */
+                    /**
+                     * Format: binary
+                     * @description Non-empty audio file, at most 25 MiB (26,214,400 bytes).
+                     */
                     file: string;
                     /** @description JSON string matching AudioUploadMetadata, including optional folder_id. */
                     metadata: string;
@@ -1954,7 +2901,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
-            /** @description File or multipart body is too large. */
+            /** @description File exceeds 25 MiB or the complete multipart request exceeds 26 MiB. */
             413: {
                 headers: {
                     [name: string]: unknown;
@@ -2005,6 +2952,532 @@ export interface operations {
             429: components["responses"]["RateLimited"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listAudioFolders: {
+        parameters: {
+            query?: {
+                /** @description Parent folder id, or root for top-level folders. */
+                parent_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio folder children and breadcrumbs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioFolderListResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createAudioFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAudioFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description Audio folder created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioFolder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    listAudioFolderTree: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive folder-name search across the tenant. */
+                search?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio folder tree. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioFolderTreeResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAudioFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio folder deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    renameAudioFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAudioFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description Audio folder renamed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioFolder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createAudioFromTTSBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSBatchSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Batch TTS assets created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSBatchSaveResponse"];
+                };
+            };
+            /** @description Partial batch success with per-item errors. */
+            207: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSBatchSaveResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Batch save body exceeds the server cap. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description One or more items fail structured validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    moveAudioAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveAudioAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description Audio asset moved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioAsset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    copyAudioAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyAudioAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description Audio asset copied. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioAsset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAudioAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio asset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioAsset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAudioAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio asset deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateAudioAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAudioAssetRequest"];
+            };
+        };
+        responses: {
+            /** @description Audio asset updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioAsset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAudioDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Short-lived audio download URL for the active revision. */
+            200: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioDownloadResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getAudioTTSEditContext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Generated-audio edit context. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioTTSEditContext"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createAudioTTSRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudioTTSRevisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Generated-audio revision result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioTTSRevisionResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description Revision request body exceeds the server cap. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Reviewed text or controls fail structured validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    bulkUploadAudioAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** @description One to five non-empty audio files, each at most 25 MiB. */
+                    files: string[];
+                    /** @description JSON string with optional defaults and per-file items, for example {"defaults":{"language":"hi","tags":["station"]},"items":[{"name":"Platform chime"}]}. */
+                    metadata?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description All files uploaded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkAudioUploadResponse"];
+                };
+            };
+            /** @description Some files failed while others may have been uploaded. */
+            207: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkAudioUploadResponse"];
+                };
+            };
+            /** @description Invalid pagination cursor. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description One file exceeds 25 MiB, aggregate raw file bytes exceed 125 MiB, or the complete multipart request exceeds 126 MiB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            /** @description Every file failed before an audio asset could be created. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkAudioUploadResponse"];
+                };
+            };
         };
     };
     listDevices: {

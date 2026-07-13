@@ -16,7 +16,7 @@ Until an npm-registry release is available, pin the public GitHub release in you
 
 Then run `npm install`.
 
-For production observability, see [Delivery monitoring](./docs/guides/delivery-monitoring.md) and [Data retention](./docs/guides/data-retention.md).
+For production audio workflows, see [Audio library and TTS](./docs/guides/audio-library-and-tts.md) and [Production TTS](./docs/guides/production-tts.md). For observability, see [Delivery monitoring](./docs/guides/delivery-monitoring.md) and [Data retention](./docs/guides/data-retention.md).
 
 ## Use
 
@@ -32,6 +32,10 @@ const pitch = new PitchClient({
 API-key mode is the default for partner operations. Server processes calling owner/admin access-token-only webhook management routes may instead inject an already-issued PITCH token with `{ bearerToken }`. The two credentials are mutually exclusive; the SDK does not acquire, refresh, persist, or expose browser sessions.
 
 Store API keys only in server-side secret storage. Required-idempotency methods require a caller key; event publication defaults it from `event_id`. Inspect `PitchAPIError` for the structured code, details, correlation ID, retry delay, and rate-limit headers. The SDK never retries automatically.
+
+Grant each server workload only the scopes it uses. For audio preparation, `audio:read` permits discovery, `audio:write` permits library changes, and `tts:compose` permits composition, preview, and pronunciation management.
+
+Audio uploads must originate in trusted server code. The SDK preflights non-empty files, a 25 MiB per-file limit, and one to five bulk files, implying at most 125 MiB of raw bulk file payload. PITCH server limits remain authoritative, including the independent 126 MiB complete bulk multipart cap. The service inspects media content instead of trusting the declared MIME type, and format, duration, storage-quota, and plan checks still apply. Treat returned asset and folder IDs as exact opaque identifiers.
 
 The client exposes the complete partner catalog through `audio`, `tts`, `devices`, `announcements`, `schedules`, `events`, `deliveries`, `webhooks`, `controls`, `zones`, and `targetBindings`. Every method accepts request options in its final argument for a caller-provided `correlationId` and `AbortSignal`. List methods accept query parameters before those request options.
 
@@ -70,6 +74,7 @@ The [PITCH developer documentation](https://knownsenseai.github.io/pitch-sdk/) i
 Runnable, CI-typechecked examples cover:
 
 - audio-library discovery, uploads, and reviewed text-to-speech assets;
+- folder organization and production TTS composition, validation, batch, pronunciation, and approval workflows;
 - device and output discovery with target preflight;
 - instant, scheduled, and calendar-based repetitive announcements;
 - weekly chained sequences of audio-library assets;

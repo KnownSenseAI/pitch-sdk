@@ -2,15 +2,32 @@ import { pitchClient, requireEnv, runExample } from "./_shared.js";
 
 await runExample(async () => {
   const client = pitchClient();
-  const text = requireEnv("PITCH_TTS_TEXT");
+  const intent = requireEnv("PITCH_TTS_INTENT");
   const language = process.env.PITCH_TTS_LANGUAGE?.trim() || "en";
-  const name = process.env.PITCH_ASSET_NAME?.trim() || `Generated announcement ${new Date().toISOString()}`;
-  const voice = process.env.PITCH_TTS_VOICE?.trim();
+  const composed = await client.tts.compose({
+    intent,
+    language,
+    ...(process.env.PITCH_TTS_AUDIENCE?.trim() ? { audience: process.env.PITCH_TTS_AUDIENCE.trim() } : {}),
+    ...(process.env.PITCH_TTS_VENUE?.trim() ? { venue_type: process.env.PITCH_TTS_VENUE.trim() } : {}),
+    ...(process.env.PITCH_TTS_TONE?.trim() ? { tone: process.env.PITCH_TTS_TONE.trim() } : {}),
+    ...(process.env.PITCH_TTS_PACE?.trim() ? { pace: Number(process.env.PITCH_TTS_PACE) } : {}),
+    ...(process.env.PITCH_TTS_ASSET_HINT?.trim() ? { asset_hint: process.env.PITCH_TTS_ASSET_HINT.trim() } : {}),
+    ...(process.env.PITCH_TTS_MAX_CHARS?.trim() ? { max_chars: Number(process.env.PITCH_TTS_MAX_CHARS) } : {}),
+  });
+
+  console.log("composition review", {
+    text: composed.text,
+    language: composed.language,
+    warnings: composed.warnings ?? [],
+    validationIssues: composed.validation_issues ?? [],
+  });
 
   const speech = {
-    text,
-    language,
-    ...(voice ? { voice } : {}),
+    text: composed.text,
+    language: composed.language,
+    ...(composed.speaker ? { voice: composed.speaker } : {}),
+    speed: composed.pace,
+    ...(composed.style_tags ? { style_tags: composed.style_tags } : {}),
   };
 
   const preview = await client.tts.preview(speech);
@@ -22,11 +39,16 @@ await runExample(async () => {
   });
 
   if (process.env.PITCH_TTS_APPROVED !== "true") {
-    console.log("Review the preview, then rerun with PITCH_TTS_APPROVED=true to save it to the audio library.");
+    console.log("Review the text, validation issues, and preview; rerun with PITCH_TTS_APPROVED=true to save once.");
     return;
   }
 
-  const asset = await client.audio.createFromTTS({ ...speech, name });
+  const folderId = process.env.PITCH_FOLDER_ID?.trim();
+  const asset = await client.audio.createFromTTS({
+    ...speech,
+    name: process.env.PITCH_ASSET_NAME?.trim() || composed.asset_name_suggestion,
+    ...(folderId ? { folder_id: folderId } : {}),
+  });
   console.log("durable TTS asset created", {
     assetId: asset.id,
     name: asset.name,

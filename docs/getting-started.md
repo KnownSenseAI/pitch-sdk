@@ -8,6 +8,8 @@ The PITCH SDK is intended for trusted server processes. Keep the API key in your
 - An HTTPS PITCH Partner API base URL
 - A PITCH API key with the scopes required by your workflow
 
+Choose least privilege: `audio:read` covers audio and folder discovery, `audio:write` covers library changes, and `tts:compose` covers speech composition, preview, and pronunciation management. Write scopes imply their matching read scope, but a read-only integration should request only the read scope. See [Audio library and TTS](/guides/audio-library-and-tts) and [Production TTS](/guides/production-tts).
+
 ## Install
 
 Until the npm-registry release is available, pin the public GitHub release:
@@ -69,4 +71,4 @@ await pitch.announcements.announceInstant(body, order.announcementRequestId, {
 });
 ```
 
-Continue with the [runnable examples](/examples) or the [Partner API reference](/api-reference). For production observability, review [Delivery monitoring](/guides/delivery-monitoring) and [Data retention](/guides/data-retention).
+Continue with the [runnable examples](/examples), [Production TTS](/guides/production-tts), or the [Partner API reference](/api-reference). For production observability, review [Delivery monitoring](/guides/delivery-monitoring) and [Data retention](/guides/data-retention).
