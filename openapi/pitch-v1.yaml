@@ -2820,6 +2820,164 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/RateLimited"
+  /v1/speech-recipes:
+    get:
+      operationId: listSpeechRecipes
+      x-pitch-partner: true
+      x-pitch-scope: [tts:compose]
+      x-pitch-idempotency: none
+      summary: List immutable complete-utterance recipes
+      description: Lists reviewed deterministic localized sentence recipes. Recipes synthesize complete utterances; spoken fragments are not a normal delivery unit.
+      tags: [Speech]
+      responses:
+        "200": {description: Immutable recipe versions., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechRecipeListResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/speech-lexicon/{namespace}/{externalId}/{locale}:
+    get:
+      operationId: getSpeechLexicon
+      x-pitch-partner: true
+      x-pitch-scope: [tts:compose]
+      x-pitch-idempotency: none
+      summary: Resolve a place spoken form
+      tags: [Speech]
+      parameters:
+        - {name: namespace, in: path, required: true, schema: {type: string}}
+        - {name: externalId, in: path, required: true, schema: {type: string}}
+        - {name: locale, in: path, required: true, schema: {type: string}, description: Normalized BCP-47 locale.}
+      responses:
+        "200": {description: Resolved tenant override or approved platform entry., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechLexiconResolution"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+    put:
+      operationId: putSpeechLexiconOverride
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Create an immutable tenant spoken-form revision
+      tags: [Speech]
+      parameters:
+        - {name: namespace, in: path, required: true, schema: {type: string}}
+        - {name: externalId, in: path, required: true, schema: {type: string}}
+        - {name: locale, in: path, required: true, schema: {type: string}, description: Normalized BCP-47 locale.}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SpeechLexiconOverrideRequest"}}}}
+      responses:
+        "200": {description: Tenant override revision., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechLexiconEntry"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+    delete:
+      operationId: deleteSpeechLexiconOverride
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Revoke the active tenant spoken-form override
+      tags: [Speech]
+      parameters:
+        - {name: namespace, in: path, required: true, schema: {type: string}}
+        - {name: externalId, in: path, required: true, schema: {type: string}}
+        - {name: locale, in: path, required: true, schema: {type: string}, description: Normalized BCP-47 locale.}
+      responses:
+        "204": {description: Override revoked; resolution falls back to the approved platform entry.}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/speech-renders/resolve:
+    post:
+      operationId: resolveSpeechRender
+      x-pitch-partner: true
+      x-pitch-scope: [audio:write]
+      x-pitch-idempotency: required
+      summary: Resolve or start an immutable complete-utterance render
+      description: Scope is server-derived. Platform catalog access additionally requires the trusted Mobility workload, immutable use context, territory, active rights, kill switch, and exact audio review. SDKs never retry this operation automatically.
+      tags: [Speech]
+      parameters:
+        - {name: X-Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 200}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SpeechRenderResolveRequest"}}}}
+      responses:
+        "200": {description: Compatible reviewed rendition and customer-owned managed asset found., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechRenderOperation"}}}}
+        "202": {description: Durable generation admitted., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechRenderOperation"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /v1/speech-renders/{operationId}:
+    get:
+      operationId: getSpeechRenderOperation
+      x-pitch-partner: true
+      x-pitch-scope: [audio:write]
+      x-pitch-idempotency: none
+      summary: Poll a durable render operation
+      description: Every response includes done. provider_outcome_unknown is terminal attention_required so clients stop polling and avoid an unaudited duplicate charge.
+      tags: [Speech]
+      parameters:
+        - {name: operationId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Current operation state., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechRenderOperation"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/speech-renditions/{renditionId}/acknowledge:
+    post:
+      operationId: acknowledgeSpeechRendition
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Acknowledge the exact heard rendition for this tenant
+      tags: [Speech]
+      parameters:
+        - {name: renditionId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Exact checksum acknowledged., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechRenditionReview"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/speech-renditions/{renditionId}/acknowledgement:
+    delete:
+      operationId: revokeSpeechRenditionAcknowledgement
+      x-pitch-partner: true
+      x-pitch-scope: []
+      x-pitch-idempotency: none
+      summary: Revoke an exact tenant acknowledgement
+      description: Dependent managed definitions reject new event ingest before revocation returns; accepted proof remains immutable.
+      tags: [Speech]
+      parameters:
+        - {name: renditionId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Acknowledgement revoked., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechRenditionReview"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/speech-delivery-assets/resolve:
+    post:
+      operationId: resolveSpeechDeliveryAsset
+      x-pitch-partner: true
+      x-pitch-scope: [audio:write]
+      x-pitch-idempotency: required
+      summary: Resolve a managed immutable delivery asset
+      description: Accepts ordered reviewed complete-utterance renditions and optional approved non-speech cues. Fallback, expiring, unsafe-script, editable, URL, and speech-fragment inputs are rejected.
+      tags: [Speech]
+      parameters:
+        - {name: X-Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 200}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SpeechDeliveryResolveRequest"}}}}
+      responses:
+        "200": {description: Deterministic managed delivery asset., content: {application/json: {schema: {$ref: "#/components/schemas/SpeechDeliveryAsset"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
 components:
   responses:
     RateLimited:
@@ -2890,6 +3048,152 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
   schemas:
+    SpeechRecipe:
+      type: object
+      required: [key, version, locale, template, required_slots, max_runes]
+      properties:
+        key: {type: string, enum: [next_stop, arriving_at, now_at, route_destination, please_alight]}
+        version: {type: integer, minimum: 1}
+        locale: {type: string}
+        template: {type: string}
+        required_slots: {type: array, items: {type: string}}
+        max_runes: {type: integer, minimum: 1}
+    SpeechRecipeListResponse:
+      type: object
+      required: [recipes]
+      properties:
+        recipes: {type: array, items: {$ref: "#/components/schemas/SpeechRecipe"}}
+    SpeechLexiconEntry:
+      type: object
+      required: [id, scope, namespace, external_id, locale, revision, display_text, spoken_text, status, created_by, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        scope: {type: string, enum: [platform_catalog, tenant_private]}
+        namespace: {type: string, example: mobility.place}
+        external_id: {type: string}
+        locale: {type: string}
+        revision: {type: integer, minimum: 1}
+        display_text: {type: string}
+        spoken_text: {type: string}
+        native_script: {type: boolean}
+        note: {type: string}
+        provenance_kind: {type: string}
+        provenance_uri: {type: string}
+        source_revision: {type: string}
+        status: {type: string, enum: [draft, approved, rejected, revoked]}
+        created_by: {type: string}
+        approved_by: {type: string}
+        created_at: {type: string, format: date-time}
+        approved_at: {type: string, format: date-time}
+    SpeechLexiconOverrideRequest:
+      type: object
+      required: [revision, display_text, spoken_text]
+      properties:
+        revision: {type: integer, minimum: 1}
+        display_text: {type: string}
+        spoken_text: {type: string}
+        native_script: {type: boolean}
+        note: {type: string}
+        provenance_kind: {type: string}
+        provenance_uri: {type: string}
+        source_revision: {type: string}
+    SpeechLexiconResolution:
+      type: object
+      required: [display_text, spoken_text, scope, pronunciation_fingerprint, unsafe_script_fallback, publishable]
+      properties:
+        display_text: {type: string}
+        spoken_text: {type: string}
+        entry_id: {type: string, format: uuid}
+        entry_revision: {type: integer, minimum: 1}
+        scope: {type: string, enum: [platform_catalog, tenant_private]}
+        pronunciation_fingerprint: {type: string, pattern: "^[0-9a-f]{64}$"}
+        unsafe_script_fallback: {type: boolean}
+        publishable: {type: boolean}
+    SpeechRenderSlot:
+      type: object
+      required: [namespace, external_id, revision, display_text]
+      properties:
+        namespace: {type: string, example: mobility.place}
+        external_id: {type: string}
+        revision: {type: string}
+        display_text: {type: string}
+    SpeechRenderResolveRequest:
+      type: object
+      required: [recipe_key, recipe_version, locale, slots, voice_profile_version, voice, target_asset_name]
+      properties:
+        recipe_key: {type: string}
+        recipe_version: {type: integer, minimum: 1}
+        locale: {type: string}
+        slots: {type: object, additionalProperties: {$ref: "#/components/schemas/SpeechRenderSlot"}}
+        voice_profile_version: {type: string}
+        voice: {type: string}
+        tone: {type: string}
+        style_tags: {type: array, items: {type: string}}
+        pace: {type: number, format: float, minimum: 0.5, maximum: 2}
+        temperature: {type: number, format: float, minimum: 0.01, maximum: 2}
+        target_asset_name: {type: string}
+        target_folder_id: {type: string}
+        custom_text: {type: string, description: Reviewed custom text is always tenant-private.}
+        custom_text_reviewed: {type: boolean}
+        use_context_id: {type: string}
+        use_context_revision: {type: string}
+        territories: {type: array, items: {type: string}}
+        rights_approval_ids: {type: array, items: {type: string, format: uuid}}
+    SpeechRenderOperation:
+      type: object
+      required: [operation_id, done, status, deadline, retryable, disposition, scope, publishable]
+      properties:
+        operation_id: {type: string, format: uuid}
+        done: {type: boolean}
+        status: {type: string, enum: [queued, leased, provider_in_flight, post_processing, ready, attention_required, failed, cancelled, expired]}
+        deadline: {type: string, format: date-time}
+        reason_code: {type: string, enum: ["", validation_failed, rights_unavailable, quota_exceeded, provider_terminal, provider_outcome_unknown, postprocess_failed, storage_failed, deadline_exceeded, cancelled]}
+        retryable: {type: boolean}
+        next_action: {type: string}
+        disposition: {type: string, enum: [generated, tenant_hit, platform_hit, generation_started, fallback]}
+        scope: {type: string, enum: [platform_catalog, tenant_private]}
+        speech_render_spec_id: {type: string, format: uuid}
+        speech_rendition_id: {type: string, format: uuid}
+        asset_id: {type: string}
+        asset_revision_id: {type: integer, minimum: 1}
+        content_key: {type: string}
+        checksum_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+        review_state: {type: string}
+        rights_state: {type: string}
+        publishable: {type: boolean}
+    SpeechRenditionReview:
+      type: object
+      required: [speech_rendition_id, checksum_sha256, review_state, publishable]
+      properties:
+        speech_rendition_id: {type: string, format: uuid}
+        checksum_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+        review_state: {type: string, enum: [tenant_acknowledged, platform_review_pending, platform_approved, rejected, revoked]}
+        publishable: {type: boolean}
+    SpeechDeliveryComponent:
+      type: object
+      required: [speech_rendition_id, gap_after_ms]
+      properties:
+        speech_rendition_id: {type: string, format: uuid}
+        gap_after_ms: {type: integer, minimum: 0, maximum: 60000}
+    SpeechDeliveryResolveRequest:
+      type: object
+      required: [components, merge_profile_version]
+      properties:
+        components: {type: array, minItems: 1, maxItems: 20, items: {$ref: "#/components/schemas/SpeechDeliveryComponent"}}
+        merge_profile_version: {type: string}
+        approved_cue_id: {type: string}
+    SpeechDeliveryAsset:
+      type: object
+      required: [speech_delivery_bundle_id, asset_id, asset_revision_id, content_key, checksum_sha256, scope, publishable]
+      properties:
+        speech_delivery_bundle_id: {type: string, format: uuid}
+        asset_id: {type: string}
+        asset_revision_id: {type: integer, minimum: 1}
+        content_key: {type: string}
+        checksum_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+        scope: {type: string, enum: [platform_catalog, tenant_private]}
+        publishable: {type: boolean}
+        valid_until: {type: string, format: date-time}
     ErrorResponse:
       type: object
       required:

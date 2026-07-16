@@ -1032,10 +1032,297 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/speech-recipes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List immutable complete-utterance recipes
+         * @description Lists reviewed deterministic localized sentence recipes. Recipes synthesize complete utterances; spoken fragments are not a normal delivery unit.
+         */
+        get: operations["listSpeechRecipes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/speech-lexicon/{namespace}/{externalId}/{locale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve a place spoken form */
+        get: operations["getSpeechLexicon"];
+        /** Create an immutable tenant spoken-form revision */
+        put: operations["putSpeechLexiconOverride"];
+        post?: never;
+        /** Revoke the active tenant spoken-form override */
+        delete: operations["deleteSpeechLexiconOverride"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/speech-renders/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve or start an immutable complete-utterance render
+         * @description Scope is server-derived. Platform catalog access additionally requires the trusted Mobility workload, immutable use context, territory, active rights, kill switch, and exact audio review. SDKs never retry this operation automatically.
+         */
+        post: operations["resolveSpeechRender"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/speech-renders/{operationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Poll a durable render operation
+         * @description Every response includes done. provider_outcome_unknown is terminal attention_required so clients stop polling and avoid an unaudited duplicate charge.
+         */
+        get: operations["getSpeechRenderOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/speech-renditions/{renditionId}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge the exact heard rendition for this tenant */
+        post: operations["acknowledgeSpeechRendition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/speech-renditions/{renditionId}/acknowledgement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke an exact tenant acknowledgement
+         * @description Dependent managed definitions reject new event ingest before revocation returns; accepted proof remains immutable.
+         */
+        delete: operations["revokeSpeechRenditionAcknowledgement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/speech-delivery-assets/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve a managed immutable delivery asset
+         * @description Accepts ordered reviewed complete-utterance renditions and optional approved non-speech cues. Fallback, expiring, unsafe-script, editable, URL, and speech-fragment inputs are rejected.
+         */
+        post: operations["resolveSpeechDeliveryAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SpeechRecipe: {
+            /** @enum {string} */
+            key: "next_stop" | "arriving_at" | "now_at" | "route_destination" | "please_alight";
+            version: number;
+            locale: string;
+            template: string;
+            required_slots: string[];
+            max_runes: number;
+        };
+        SpeechRecipeListResponse: {
+            recipes: components["schemas"]["SpeechRecipe"][];
+        };
+        SpeechLexiconEntry: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            scope: "platform_catalog" | "tenant_private";
+            /** @example mobility.place */
+            namespace: string;
+            external_id: string;
+            locale: string;
+            revision: number;
+            display_text: string;
+            spoken_text: string;
+            native_script?: boolean;
+            note?: string;
+            provenance_kind?: string;
+            provenance_uri?: string;
+            source_revision?: string;
+            /** @enum {string} */
+            status: "draft" | "approved" | "rejected" | "revoked";
+            created_by: string;
+            approved_by?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            approved_at?: string;
+        };
+        SpeechLexiconOverrideRequest: {
+            revision: number;
+            display_text: string;
+            spoken_text: string;
+            native_script?: boolean;
+            note?: string;
+            provenance_kind?: string;
+            provenance_uri?: string;
+            source_revision?: string;
+        };
+        SpeechLexiconResolution: {
+            display_text: string;
+            spoken_text: string;
+            /** Format: uuid */
+            entry_id?: string;
+            entry_revision?: number;
+            /** @enum {string} */
+            scope: "platform_catalog" | "tenant_private";
+            pronunciation_fingerprint: string;
+            unsafe_script_fallback: boolean;
+            publishable: boolean;
+        };
+        SpeechRenderSlot: {
+            /** @example mobility.place */
+            namespace: string;
+            external_id: string;
+            revision: string;
+            display_text: string;
+        };
+        SpeechRenderResolveRequest: {
+            recipe_key: string;
+            recipe_version: number;
+            locale: string;
+            slots: {
+                [key: string]: components["schemas"]["SpeechRenderSlot"];
+            };
+            voice_profile_version: string;
+            voice: string;
+            tone?: string;
+            style_tags?: string[];
+            /** Format: float */
+            pace?: number;
+            /** Format: float */
+            temperature?: number;
+            target_asset_name: string;
+            target_folder_id?: string;
+            /** @description Reviewed custom text is always tenant-private. */
+            custom_text?: string;
+            custom_text_reviewed?: boolean;
+            use_context_id?: string;
+            use_context_revision?: string;
+            territories?: string[];
+            rights_approval_ids?: string[];
+        };
+        SpeechRenderOperation: {
+            /** Format: uuid */
+            operation_id: string;
+            done: boolean;
+            /** @enum {string} */
+            status: "queued" | "leased" | "provider_in_flight" | "post_processing" | "ready" | "attention_required" | "failed" | "cancelled" | "expired";
+            /** Format: date-time */
+            deadline: string;
+            /** @enum {string} */
+            reason_code?: "" | "validation_failed" | "rights_unavailable" | "quota_exceeded" | "provider_terminal" | "provider_outcome_unknown" | "postprocess_failed" | "storage_failed" | "deadline_exceeded" | "cancelled";
+            retryable: boolean;
+            next_action?: string;
+            /** @enum {string} */
+            disposition: "generated" | "tenant_hit" | "platform_hit" | "generation_started" | "fallback";
+            /** @enum {string} */
+            scope: "platform_catalog" | "tenant_private";
+            /** Format: uuid */
+            speech_render_spec_id?: string;
+            /** Format: uuid */
+            speech_rendition_id?: string;
+            asset_id?: string;
+            asset_revision_id?: number;
+            content_key?: string;
+            checksum_sha256?: string;
+            review_state?: string;
+            rights_state?: string;
+            publishable: boolean;
+        };
+        SpeechRenditionReview: {
+            /** Format: uuid */
+            speech_rendition_id: string;
+            checksum_sha256: string;
+            /** @enum {string} */
+            review_state: "tenant_acknowledged" | "platform_review_pending" | "platform_approved" | "rejected" | "revoked";
+            publishable: boolean;
+        };
+        SpeechDeliveryComponent: {
+            /** Format: uuid */
+            speech_rendition_id: string;
+            gap_after_ms: number;
+        };
+        SpeechDeliveryResolveRequest: {
+            components: components["schemas"]["SpeechDeliveryComponent"][];
+            merge_profile_version: string;
+            approved_cue_id?: string;
+        };
+        SpeechDeliveryAsset: {
+            /** Format: uuid */
+            speech_delivery_bundle_id: string;
+            asset_id: string;
+            asset_revision_id: number;
+            content_key: string;
+            checksum_sha256: string;
+            /** @enum {string} */
+            scope: "platform_catalog" | "tenant_private";
+            publishable: boolean;
+            /** Format: date-time */
+            valid_until?: string;
+        };
         ErrorResponse: {
             error: {
                 /** @example unauthorized */
@@ -4784,6 +5071,269 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             429: components["responses"]["RateLimited"];
+        };
+    };
+    listSpeechRecipes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Immutable recipe versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechRecipeListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getSpeechLexicon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                namespace: string;
+                externalId: string;
+                /** @description Normalized BCP-47 locale. */
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resolved tenant override or approved platform entry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechLexiconResolution"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    putSpeechLexiconOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                namespace: string;
+                externalId: string;
+                /** @description Normalized BCP-47 locale. */
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeechLexiconOverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description Tenant override revision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechLexiconEntry"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    deleteSpeechLexiconOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                namespace: string;
+                externalId: string;
+                /** @description Normalized BCP-47 locale. */
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Override revoked; resolution falls back to the approved platform entry. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    resolveSpeechRender: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeechRenderResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Compatible reviewed rendition and customer-owned managed asset found. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechRenderOperation"];
+                };
+            };
+            /** @description Durable generation admitted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechRenderOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getSpeechRenderOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current operation state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechRenderOperation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    acknowledgeSpeechRendition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                renditionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exact checksum acknowledged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechRenditionReview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    revokeSpeechRenditionAcknowledgement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                renditionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Acknowledgement revoked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechRenditionReview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    resolveSpeechDeliveryAsset: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeechDeliveryResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Deterministic managed delivery asset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeechDeliveryAsset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
 }

@@ -75,6 +75,7 @@ type InternalRequestOptions = RequestOptions & {
 export class PitchClient {
   readonly audio;
   readonly tts;
+  readonly speech;
   readonly devices;
   readonly announcements;
   readonly events;
@@ -170,6 +171,27 @@ export class PitchClient {
         upsertTerm: (body: JSONBody<"/v1/tts/pronunciation/terms", "put">, options?: RequestOptions) => this.request<"upsertTTSPronunciationTerm">("PUT", "/v1/tts/pronunciation/terms", body, options),
         deleteTerm: ({ language, word }: PronunciationTermKey, options?: RequestOptions) => this.request<"deleteTTSPronunciationTerm">("DELETE", "/v1/tts/pronunciation/terms", undefined, { ...options, query: { language, word } }),
         applyTemplate: (industry: string, options?: RequestOptions) => this.request<"applyTTSPronunciationTemplate">("POST", `/v1/tts/pronunciation/templates/${segment(industry)}/apply`, undefined, options),
+      },
+    };
+    this.speech = {
+      recipes: {
+        list: (options?: RequestOptions) => this.request<"listSpeechRecipes">("GET", "/v1/speech-recipes", undefined, options),
+      },
+      lexicon: {
+        get: (namespace: string, externalId: string, locale: string, options?: RequestOptions) => this.request<"getSpeechLexicon">("GET", speechLexiconPath(namespace, externalId, locale), undefined, options),
+        put: (namespace: string, externalId: string, locale: string, body: JSONBody<"/v1/speech-lexicon/{namespace}/{externalId}/{locale}", "put">, options?: RequestOptions) => this.request<"putSpeechLexiconOverride">("PUT", speechLexiconPath(namespace, externalId, locale), body, options),
+        delete: (namespace: string, externalId: string, locale: string, options?: RequestOptions) => this.request<"deleteSpeechLexiconOverride">("DELETE", speechLexiconPath(namespace, externalId, locale), undefined, options),
+      },
+      renders: {
+        resolve: (body: JSONBody<"/v1/speech-renders/resolve", "post">, idempotencyKey: string, options?: RequestOptions) => this.requiredIdempotent<"resolveSpeechRender">("POST", "/v1/speech-renders/resolve", body, idempotencyKey, options),
+        get: (operationId: string, options?: RequestOptions) => this.request<"getSpeechRenderOperation">("GET", `/v1/speech-renders/${segment(operationId)}`, undefined, options),
+      },
+      renditions: {
+        acknowledge: (renditionId: string, options?: RequestOptions) => this.request<"acknowledgeSpeechRendition">("POST", `/v1/speech-renditions/${segment(renditionId)}/acknowledge`, undefined, options),
+        revokeAcknowledgement: (renditionId: string, options?: RequestOptions) => this.request<"revokeSpeechRenditionAcknowledgement">("DELETE", `/v1/speech-renditions/${segment(renditionId)}/acknowledgement`, undefined, options),
+      },
+      deliveryAssets: {
+        resolve: (body: JSONBody<"/v1/speech-delivery-assets/resolve", "post">, idempotencyKey: string, options?: RequestOptions) => this.requiredIdempotent<"resolveSpeechDeliveryAsset">("POST", "/v1/speech-delivery-assets/resolve", body, idempotencyKey, options),
       },
     };
     this.devices = {
@@ -287,6 +309,10 @@ export class PitchClient {
     }
     return responseBody as SuccessResponse<OperationID>;
   }
+}
+
+function speechLexiconPath(namespace: string, externalId: string, locale: string): string {
+  return `/v1/speech-lexicon/${segment(namespace)}/${segment(externalId)}/${segment(locale)}`;
 }
 
 function segment(value: string): string {

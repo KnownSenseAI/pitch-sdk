@@ -26,6 +26,7 @@ features:
 
 - [Find, upload, or generate audio](/guides/audio-library-and-tts) and store the selected asset ID.
 - Build an approved multilingual workflow with [Production TTS](/guides/production-tts).
+- Render versioned names and phrases with [Canonical speech rendering](/guides/canonical-speech).
 - Send an [instant announcement](/guides/instant-announcements) from an uploaded audio asset.
 - Preview and create a [scheduled announcement](/guides/scheduled-announcements).
 - Repeat one asset inside an operating window with a [repetitive announcement](/guides/repetitive-announcements).

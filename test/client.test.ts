@@ -9,7 +9,8 @@ type DeviceReturnIsGenerated = ReturnType<PitchClient["devices"]["get"]> extends
 type FolderReturnIsGenerated = ReturnType<PitchClient["audio"]["folders"]["create"]> extends Promise<components["schemas"]["AudioFolder"]> ? true : never;
 type PronunciationReturnIsGenerated = ReturnType<PitchClient["tts"]["pronunciation"]["get"]> extends Promise<components["schemas"]["TTSPronunciationSummary"]> ? true : never;
 type EditContextReturnIsGenerated = ReturnType<PitchClient["audio"]["getEditContext"]> extends Promise<components["schemas"]["AudioTTSEditContext"]> ? true : never;
-const typedSuccessAssertions: [PublishReturnIsGenerated, DeviceReturnIsGenerated, FolderReturnIsGenerated, PronunciationReturnIsGenerated, EditContextReturnIsGenerated] = [true, true, true, true, true];
+type SpeechRenderReturnIsGenerated = ReturnType<PitchClient["speech"]["renders"]["resolve"]> extends Promise<components["schemas"]["SpeechRenderOperation"]> ? true : never;
+const typedSuccessAssertions: [PublishReturnIsGenerated, DeviceReturnIsGenerated, FolderReturnIsGenerated, PronunciationReturnIsGenerated, EditContextReturnIsGenerated, SpeechRenderReturnIsGenerated] = [true, true, true, true, true, true];
 const legacyBindingRequest: components["schemas"]["PutTargetBindingRequest"] = { zone_id: "00000000-0000-0000-0000-000000000001" };
 const pinnedBindingRequest: components["schemas"]["PutTargetBindingRequest"] = {
   zone_id: "00000000-0000-0000-0000-000000000001",
@@ -31,7 +32,7 @@ function blobWithReportedSize(size: number): Blob {
 }
 
 describe("PitchClient", () => {
-  it("keeps generated success response types", () => expect(typedSuccessAssertions).toEqual([true, true, true, true, true]));
+  it("keeps generated success response types", () => expect(typedSuccessAssertions).toEqual([true, true, true, true, true, true]));
 
   it("rejects insecure non-local base URLs", () => {
     expect(() => new PitchClient({ baseUrl: "http://example.com", apiKey: "key" })).toThrow(/HTTPS/);
@@ -316,6 +317,15 @@ describe("PitchClient", () => {
       ["PUT", "/v1/tts/pronunciation/terms", c => c.tts.pronunciation.upsertTerm({ language: "en", word: "PITCH", pronunciation: "pitch" }), undefined],
       ["DELETE", "/v1/tts/pronunciation/terms", c => c.tts.pronunciation.deleteTerm({ language: "en", word: "PITCH" }), undefined],
       ["POST", "/v1/tts/pronunciation/templates/transit/apply", c => c.tts.pronunciation.applyTemplate("transit"), undefined],
+      ["GET", "/v1/speech-recipes", c => c.speech.recipes.list(), undefined],
+      ["GET", "/v1/speech-lexicon/mobility.place/place-1/en-IN", c => c.speech.lexicon.get("mobility.place", "place-1", "en-IN"), undefined],
+      ["PUT", "/v1/speech-lexicon/mobility.place/place-1/en-IN", c => c.speech.lexicon.put("mobility.place", "place-1", "en-IN", {} as never), undefined],
+      ["DELETE", "/v1/speech-lexicon/mobility.place/place-1/en-IN", c => c.speech.lexicon.delete("mobility.place", "place-1", "en-IN"), undefined],
+      ["POST", "/v1/speech-renders/resolve", c => c.speech.renders.resolve({} as never, "speech-idem"), "speech-idem"],
+      ["GET", "/v1/speech-renders/op-1", c => c.speech.renders.get("op-1"), undefined],
+      ["POST", "/v1/speech-renditions/r-1/acknowledge", c => c.speech.renditions.acknowledge("r-1"), undefined],
+      ["DELETE", "/v1/speech-renditions/r-1/acknowledgement", c => c.speech.renditions.revokeAcknowledgement("r-1"), undefined],
+      ["POST", "/v1/speech-delivery-assets/resolve", c => c.speech.deliveryAssets.resolve({} as never, "bundle-idem"), "bundle-idem"],
       ["GET", "/v1/audio", c => c.audio.list(), undefined],
       ["GET", "/v1/audio/a1", c => c.audio.get("a1"), undefined],
       ["POST", "/v1/audio", c => c.audio.upload({ file: new Blob(["audio"]), filename: "audio.ogg", metadata: { name: "Audio" } }), undefined],
