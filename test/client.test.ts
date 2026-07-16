@@ -10,6 +10,13 @@ type FolderReturnIsGenerated = ReturnType<PitchClient["audio"]["folders"]["creat
 type PronunciationReturnIsGenerated = ReturnType<PitchClient["tts"]["pronunciation"]["get"]> extends Promise<components["schemas"]["TTSPronunciationSummary"]> ? true : never;
 type EditContextReturnIsGenerated = ReturnType<PitchClient["audio"]["getEditContext"]> extends Promise<components["schemas"]["AudioTTSEditContext"]> ? true : never;
 const typedSuccessAssertions: [PublishReturnIsGenerated, DeviceReturnIsGenerated, FolderReturnIsGenerated, PronunciationReturnIsGenerated, EditContextReturnIsGenerated] = [true, true, true, true, true];
+const legacyBindingRequest: components["schemas"]["PutTargetBindingRequest"] = { zone_id: "00000000-0000-0000-0000-000000000001" };
+const pinnedBindingRequest: components["schemas"]["PutTargetBindingRequest"] = {
+  zone_id: "00000000-0000-0000-0000-000000000001",
+  resolution_mode: "pinned_snapshot",
+  expected_zone_version: 7,
+  expected_target_hash: "a".repeat(64),
+};
 
 function setup(response = new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } })) {
   const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(response);
@@ -62,6 +69,15 @@ describe("PitchClient", () => {
     const { client, fetch } = setup();
     await client.targetBindings.get("fleet source", "bus/12");
     expect(String(fetch.mock.calls[0]![0])).toBe("http://localhost:8080/v1/target-bindings/fleet%20source/bus%2F12");
+  });
+
+  it("keeps legacy live-zone requests valid and sends pinned snapshot preconditions", async () => {
+    const legacy = setup();
+    await legacy.client.targetBindings.put("legacy", "one", legacyBindingRequest);
+    expect(JSON.parse(String(legacy.fetch.mock.calls[0]![1]?.body))).toEqual(legacyBindingRequest);
+    const pinned = setup();
+    await pinned.client.targetBindings.put("mobility.vehicle-assignment", "vehicle-1", pinnedBindingRequest);
+    expect(JSON.parse(String(pinned.fetch.mock.calls[0]![1]?.body))).toEqual(pinnedBindingRequest);
   });
 
   it("serializes typed delivery list queries", async () => {

@@ -39,6 +39,8 @@ Audio uploads must originate in trusted server code. The SDK preflights non-empt
 
 The client exposes the complete partner catalog through `audio`, `tts`, `devices`, `announcements`, `schedules`, `events`, `deliveries`, `webhooks`, `controls`, `zones`, and `targetBindings`. Every method accepts request options in its final argument for a caller-provided `correlationId` and `AbortSignal`. List methods accept query parameters before those request options.
 
+Target bindings continue to default to live zone resolution when `resolution_mode` is omitted. Trusted service workloads can request an immutable `pinned_snapshot` by sending the zone's current `expected_zone_version` and `expected_target_hash`; the response records the exact normalized output targets used for delayed event delivery.
+
 Schedule operations live under `client.schedules`. The original pre-1.0 `announcements.updateSchedule`, `announcements.preview`, `announcements.pause`, and `announcements.deleteSchedule` names remain as compatibility aliases. `announcements.delete` deletes the announcement definition through `/v1/announcements/{id}`.
 
 The SDK sends API keys with `X-Pitch-Key`. The PITCH service also accepts the legacy `X-SmartPA-Key` alias so deployed integrations continue to work.

@@ -1846,12 +1846,37 @@ export interface components {
             external_id: string;
             /** Format: uuid */
             zone_id: string;
+            /**
+             * @description Defaults to live_zone for bindings created through the legacy request shape.
+             * @enum {string}
+             */
+            resolution_mode?: "live_zone" | "pinned_snapshot";
+            /** Format: int64 */
+            zone_version?: number;
+            target_hash?: string;
+            target_count?: number;
+            targets?: components["schemas"]["OutputTarget"][];
             /** Format: int64 */
             version: number;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            /** Format: date-time */
+            retired_at?: string;
+        };
+        /** @description pinned_snapshot requires both expected_zone_version and expected_target_hash; live_zone rejects both fields. */
+        PutTargetBindingRequest: {
+            /** Format: uuid */
+            zone_id: string;
+            /**
+             * @description Omit for backward-compatible live_zone resolution.
+             * @enum {string}
+             */
+            resolution_mode?: "live_zone" | "pinned_snapshot";
+            /** Format: int64 */
+            expected_zone_version?: number;
+            expected_target_hash?: string;
         };
         OutputZonePreflightResponse: {
             allowed: boolean;
@@ -3783,7 +3808,10 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                namespace: string;
+                externalId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -3813,15 +3841,15 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                namespace: string;
+                externalId: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": {
-                    /** Format: uuid */
-                    zone_id: string;
-                };
+                "application/json": components["schemas"]["PutTargetBindingRequest"];
             };
         };
         responses: {
@@ -3834,16 +3862,30 @@ export interface operations {
                     "application/json": components["schemas"]["TargetBinding"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description Expected zone version is stale. */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     deleteTargetBinding: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                namespace: string;
+                externalId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -4522,7 +4564,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                announcementId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -4547,7 +4591,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                announcementId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -4579,7 +4625,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                announcementId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -4614,7 +4662,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                announcementId: string;
+            };
             cookie?: never;
         };
         requestBody?: {
