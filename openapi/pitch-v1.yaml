@@ -1495,18 +1495,24 @@ paths:
       x-pitch-idempotency: none
       tags:
         - Zones
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: externalId
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 128
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - zone_id
-              properties:
-                zone_id:
-                  type: string
-                  format: uuid
+              $ref: "#/components/schemas/PutTargetBindingRequest"
       responses:
         "200":
           description: Binding
@@ -1514,12 +1520,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TargetBinding"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "412":
+          description: Expected zone version is stale.
         "429":
           $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
     get:
       operationId: getTargetBinding
       x-pitch-partner: true
@@ -1528,6 +1544,18 @@ paths:
       x-pitch-idempotency: none
       tags:
         - Zones
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: externalId
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 128
       responses:
         "200":
           description: Binding
@@ -1551,6 +1579,18 @@ paths:
       x-pitch-idempotency: none
       tags:
         - Zones
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: externalId
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 128
       responses:
         "204":
           description: Binding soft-deleted.
@@ -2494,6 +2534,12 @@ paths:
       description: Returns one customer-scoped announcement by identifier.
       tags:
         - Announcements
+      parameters:
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
       security:
         - apiKeyAuth: []
         - bearerAuth: []
@@ -2524,6 +2570,12 @@ paths:
       description: Soft-deletes an announcement, removes it from the online scheduler when configured, and emits device schedule-sync events for explicit device targets.
       tags:
         - Announcements
+      parameters:
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         "204":
           description: Announcement deleted.
@@ -2554,6 +2606,12 @@ paths:
       description: Transitions an announcement to a new status. Transitioning to active runs the same activation decision checks used by the activate endpoint.
       tags:
         - Announcements
+      parameters:
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
       security:
         - apiKeyAuth: []
         - bearerAuth: []
@@ -2604,6 +2662,12 @@ paths:
       description: Activates a draft or pending-review announcement and schedules durable trigger types when scheduling dependencies are configured.
       tags:
         - Announcements
+      parameters:
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
       security:
         - apiKeyAuth: []
         - bearerAuth: []
@@ -4497,6 +4561,29 @@ components:
         zone_id:
           type: string
           format: uuid
+        resolution_mode:
+          type: string
+          enum:
+            - live_zone
+            - pinned_snapshot
+          description: Defaults to live_zone for bindings created through the legacy request shape.
+        zone_version:
+          type: integer
+          format: int64
+          minimum: 1
+        target_hash:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        target_count:
+          type: integer
+          minimum: 1
+          maximum: 500
+        targets:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/OutputTarget"
         version:
           type: integer
           format: int64
@@ -4506,6 +4593,32 @@ components:
         updated_at:
           type: string
           format: date-time
+        retired_at:
+          type: string
+          format: date-time
+    PutTargetBindingRequest:
+      type: object
+      required:
+        - zone_id
+      additionalProperties: false
+      properties:
+        zone_id:
+          type: string
+          format: uuid
+        resolution_mode:
+          type: string
+          enum:
+            - live_zone
+            - pinned_snapshot
+          description: Omit for backward-compatible live_zone resolution.
+        expected_zone_version:
+          type: integer
+          format: int64
+          minimum: 1
+        expected_target_hash:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+      description: pinned_snapshot requires both expected_zone_version and expected_target_hash; live_zone rejects both fields.
     OutputZonePreflightResponse:
       type: object
       required:
