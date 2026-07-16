@@ -1290,6 +1290,7 @@ export interface components {
             checksum_sha256?: string;
             review_state?: string;
             rights_state?: string;
+            rights_fingerprint?: string;
             publishable: boolean;
         };
         SpeechRenditionReview: {
@@ -1319,6 +1320,7 @@ export interface components {
             checksum_sha256: string;
             /** @enum {string} */
             scope: "platform_catalog" | "tenant_private";
+            rights_fingerprint?: string;
             publishable: boolean;
             /** Format: date-time */
             valid_until?: string;

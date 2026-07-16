@@ -3160,6 +3160,7 @@ components:
         checksum_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
         review_state: {type: string}
         rights_state: {type: string}
+        rights_fingerprint: {type: string, pattern: "^[0-9a-f]{64}$"}
         publishable: {type: boolean}
     SpeechRenditionReview:
       type: object
@@ -3192,6 +3193,7 @@ components:
         content_key: {type: string}
         checksum_sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
         scope: {type: string, enum: [platform_catalog, tenant_private]}
+        rights_fingerprint: {type: string, pattern: "^[0-9a-f]{64}$"}
         publishable: {type: boolean}
         valid_until: {type: string, format: date-time}
     ErrorResponse:
