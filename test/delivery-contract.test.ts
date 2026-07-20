@@ -14,6 +14,7 @@ type SchemaProperty = {
   description?: string;
   enum?: string[];
   example?: string[];
+  minLength?: number;
 };
 
 type PublicContract = {
@@ -26,6 +27,7 @@ type PublicContract = {
   components: {
     schemas: Record<string, {
       properties: Record<string, SchemaProperty>;
+      required?: string[];
     }>;
   };
 };
@@ -38,7 +40,8 @@ describe("public delivery contract", () => {
   it("keeps the complete customer-scoped delivery query and retention contract", () => {
     const operation = contract.paths["/v1/logs/deliveries"]!.get;
     const queryNames = operation.parameters.flatMap((parameter) => parameter.name ?? []);
-    const timeline = contract.components.schemas.DeliveryTimeline!.properties;
+    const timelineSchema = contract.components.schemas.DeliveryTimeline!;
+    const timeline = timelineSchema.properties;
     const list = contract.components.schemas.DeliveryTimelineListResponse!.properties;
 
     expect(queryNames).toEqual(expect.arrayContaining([
@@ -59,6 +62,11 @@ describe("public delivery contract", () => {
       "started",
     ]);
     expect(timeline).toHaveProperty("failureReason");
+    expect(timelineSchema.required).toContain("msgId");
+    expect(timeline.msgId).toMatchObject({
+      minLength: 1,
+      description: expect.stringContaining("Exact delivery message identifier"),
+    });
     expect(list.cursor!.description).toContain("Opaque next-page cursor");
     expect(list.cursor!.description).toContain("no next page");
   });

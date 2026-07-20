@@ -4662,6 +4662,7 @@ components:
       required:
         - announcementId
         - deviceId
+        - msgId
         - correlationId
         - status
         - events
@@ -4673,6 +4674,10 @@ components:
         outputId:
           type: string
           default: main
+        msgId:
+          type: string
+          minLength: 1
+          description: Exact delivery message identifier; together with deviceId and outputId, identifies one delivery attempt.
         correlationId:
           type: string
         status:

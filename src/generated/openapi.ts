@@ -2052,6 +2052,8 @@ export interface components {
             deviceId: string;
             /** @default main */
             outputId: string;
+            /** @description Exact delivery message identifier; together with deviceId and outputId, identifies one delivery attempt. */
+            msgId: string;
             correlationId: string;
             /** @enum {string} */
             status: "played" | "failed" | "pending" | "published" | "received" | "started";
